@@ -1,0 +1,188 @@
+{
+  "project": "signal-360-analysis",
+  "version": "1.0.0",
+  "description": "Signal-360 Financial Analysis Edge Functions",
+  "functions": {
+    "analyze-ticker": {
+      "description": "Main orchestrator for comprehensive financial analysis",
+      "timeout": 120,
+      "memory": 512,
+      "environment": "production",
+      "dependencies": [
+        "fundamental-analysis",
+        "technical-analysis", 
+        "esg-analysis",
+        "synthesis-engine",
+        "decrypt-api-key"
+      ],
+      "secrets": [
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "ENCRYPTION_KEY",
+        "GOOGLE_API_KEY"
+      ]
+    },
+    "fundamental-analysis": {
+      "description": "Financial fundamentals analysis module",
+      "timeout": 60,
+      "memory": 256,
+      "environment": "production",
+      "dependencies": [
+        "decrypt-api-key"
+      ],
+      "secrets": [
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "ENCRYPTION_KEY"
+      ]
+    },
+    "technical-analysis": {
+      "description": "Technical analysis and price pattern recognition",
+      "timeout": 60,
+      "memory": 256,
+      "environment": "production",
+      "dependencies": [
+        "decrypt-api-key"
+      ],
+      "secrets": [
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "ENCRYPTION_KEY"
+      ]
+    },
+    "esg-analysis": {
+      "description": "Environmental, Social, and Governance analysis",
+      "timeout": 60,
+      "memory": 256,
+      "environment": "production",
+      "dependencies": [
+        "decrypt-api-key"
+      ],
+      "secrets": [
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "ENCRYPTION_KEY"
+      ]
+    },
+    "synthesis-engine": {
+      "description": "Analysis synthesis and scoring engine",
+      "timeout": 30,
+      "memory": 256,
+      "environment": "production",
+      "dependencies": [],
+      "secrets": [
+        "SUPABASE_SERVICE_ROLE_KEY"
+      ]
+    },
+    "generate-ideas": {
+      "description": "Investment and trading idea generation",
+      "timeout": 45,
+      "memory": 256,
+      "environment": "production",
+      "dependencies": [
+        "decrypt-api-key"
+      ],
+      "secrets": [
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "ENCRYPTION_KEY"
+      ]
+    },
+    "encrypt-api-key": {
+      "description": "API key encryption service",
+      "timeout": 15,
+      "memory": 128,
+      "environment": "production",
+      "dependencies": [],
+      "secrets": [
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "ENCRYPTION_KEY"
+      ]
+    },
+    "decrypt-api-key": {
+      "description": "API key decryption service",
+      "timeout": 15,
+      "memory": 128,
+      "environment": "production",
+      "dependencies": [],
+      "secrets": [
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "ENCRYPTION_KEY"
+      ]
+    }
+  },
+  "environments": {
+    "development": {
+      "supabase_url": "https://dev-project.supabase.co",
+      "database_url": "postgresql://dev-connection-string",
+      "log_level": "DEBUG",
+      "cache_enabled": true,
+      "rate_limiting": {
+        "enabled": false,
+        "requests_per_minute": 1000
+      },
+      "external_apis": {
+        "timeout": 30000,
+        "retry_attempts": 2
+      }
+    },
+    "staging": {
+      "supabase_url": "https://staging-project.supabase.co",
+      "database_url": "postgresql://staging-connection-string",
+      "log_level": "INFO",
+      "cache_enabled": true,
+      "rate_limiting": {
+        "enabled": true,
+        "requests_per_minute": 500
+      },
+      "external_apis": {
+        "timeout": 25000,
+        "retry_attempts": 3
+      }
+    },
+    "production": {
+      "supabase_url": "https://prod-project.supabase.co",
+      "database_url": "postgresql://prod-connection-string",
+      "log_level": "WARN",
+      "cache_enabled": true,
+      "rate_limiting": {
+        "enabled": true,
+        "requests_per_minute": 100
+      },
+      "external_apis": {
+        "timeout": 20000,
+        "retry_attempts": 3
+      }
+    }
+  },
+  "monitoring": {
+    "enabled": true,
+    "metrics": [
+      "request_count",
+      "response_time",
+      "error_rate",
+      "cache_hit_rate",
+      "memory_usage"
+    ],
+    "alerts": {
+      "error_rate_threshold": 0.05,
+      "response_time_threshold": 10000,
+      "memory_usage_threshold": 0.8
+    }
+  },
+  "security": {
+    "cors": {
+      "allowed_origins": [
+        "https://signal-360.com",
+        "https://app.signal-360.com",
+        "https://dev.signal-360.com"
+      ],
+      "allowed_methods": ["GET", "POST", "OPTIONS"],
+      "allowed_headers": ["Authorization", "Content-Type", "x-client-info"]
+    },
+    "rate_limiting": {
+      "global_limit": 10000,
+      "per_user_limit": 100,
+      "per_ip_limit": 1000
+    },
+    "encryption": {
+      "algorithm": "AES-256-GCM",
+      "key_rotation_days": 90
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "lib": ["deno.window"],
+    "strict": true
+  },
+  "imports": {
+    "supabase": "https://esm.sh/@supabase/supabase-js@2",
+    "cors": "https://deno.land/x/cors@v1.2.2/mod.ts"
+  },
+  "tasks": {
+    "test": "deno test --allow-all",
+    "dev": "deno run --allow-all --watch",
+    "lint": "deno lint",
+    "fmt": "deno fmt"
+  },
+  "lint": {
+    "rules": {
+      "tags": ["recommended"]
+    }
+  },
+  "fmt": {
+    "options": {
+      "useTabs": false,
+      "lineWidth": 100,
+      "indentWidth": 2,
+      "semiColons": true,
+      "singleQuote": true,
+      "proseWrap": "preserve"
+    }
+  }
+}
