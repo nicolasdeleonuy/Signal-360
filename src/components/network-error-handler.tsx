@@ -1,4 +1,4 @@
-import React, { useState, useEffect, ReactNode } from 'react'
+import { useState, useEffect, ReactNode } from 'react'
 import { useToast } from './toast'
 
 interface NetworkErrorHandlerProps {

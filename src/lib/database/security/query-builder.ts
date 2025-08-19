@@ -2,7 +2,6 @@
 // Provides parameterized queries and safe query construction
 
 import { supabase } from '../../supabase';
-import { InputValidator } from './input-validator';
 import { DatabaseErrorHandler } from '../error-handler';
 import { DatabaseError } from '../../../types/database';
 
@@ -157,47 +156,47 @@ export class SecureQueryBuilder {
    */
   async execute(): Promise<any[]> {
     try {
+      // Start with the base query and apply SELECT
       let query = supabase.from(this.tableName);
-
-      // Apply SELECT
+      
       if (this.selectColumns.length > 0 && this.selectColumns[0] !== '*') {
-        query = query.select(this.selectColumns.join(', '));
+        query = query.select(this.selectColumns.join(', ')) as any;
       } else {
-        query = query.select('*');
+        query = query.select('*') as any;
       }
 
       // Apply WHERE conditions
       for (const condition of this.whereConditions) {
         switch (condition.operator) {
           case 'eq':
-            query = query.eq(condition.column, condition.value);
+            query = (query as any).eq(condition.column, condition.value);
             break;
           case 'neq':
-            query = query.neq(condition.column, condition.value);
+            query = (query as any).neq(condition.column, condition.value);
             break;
           case 'gt':
-            query = query.gt(condition.column, condition.value);
+            query = (query as any).gt(condition.column, condition.value);
             break;
           case 'gte':
-            query = query.gte(condition.column, condition.value);
+            query = (query as any).gte(condition.column, condition.value);
             break;
           case 'lt':
-            query = query.lt(condition.column, condition.value);
+            query = (query as any).lt(condition.column, condition.value);
             break;
           case 'lte':
-            query = query.lte(condition.column, condition.value);
+            query = (query as any).lte(condition.column, condition.value);
             break;
           case 'like':
-            query = query.like(condition.column, condition.value);
+            query = (query as any).like(condition.column, condition.value);
             break;
           case 'ilike':
-            query = query.ilike(condition.column, condition.value);
+            query = (query as any).ilike(condition.column, condition.value);
             break;
           case 'in':
-            query = query.in(condition.column, condition.value as any[]);
+            query = (query as any).in(condition.column, condition.value as any[]);
             break;
           case 'is':
-            query = query.is(condition.column, condition.value);
+            query = (query as any).is(condition.column, condition.value);
             break;
           default:
             throw this.createSecurityError(`Unsupported operator: ${condition.operator}`);
@@ -206,7 +205,7 @@ export class SecureQueryBuilder {
 
       // Apply ORDER BY
       if (this.orderByClause) {
-        query = query.order(this.orderByClause.column, {
+        query = (query as any).order(this.orderByClause.column, {
           ascending: this.orderByClause.direction === 'asc',
         });
       }
@@ -214,13 +213,13 @@ export class SecureQueryBuilder {
       // Apply LIMIT and OFFSET
       if (this.limitValue !== null) {
         if (this.offsetValue !== null) {
-          query = query.range(this.offsetValue, this.offsetValue + this.limitValue - 1);
+          query = (query as any).range(this.offsetValue, this.offsetValue + this.limitValue - 1);
         } else {
-          query = query.limit(this.limitValue);
+          query = (query as any).limit(this.limitValue);
         }
       }
 
-      const { data, error } = await query;
+      const { data, error } = await (query as any);
 
       if (error) {
         throw DatabaseErrorHandler.handleSupabaseError(error, 'Secure query execution');
@@ -243,7 +242,7 @@ export class SecureQueryBuilder {
     try {
       let query = supabase
         .from(this.tableName)
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: true }) as any;
 
       // Apply WHERE conditions
       for (const condition of this.whereConditions) {
@@ -331,7 +330,7 @@ export class SecureQueryBuilder {
 
       const sanitizedData = this.sanitizeUpdateData(data);
       
-      let query = supabase.from(this.tableName).update(sanitizedData);
+      let query = supabase.from(this.tableName).update(sanitizedData) as any;
 
       // Apply WHERE conditions
       for (const condition of this.whereConditions) {
@@ -365,7 +364,7 @@ export class SecureQueryBuilder {
         throw this.createSecurityError('DELETE requires WHERE conditions');
       }
 
-      let query = supabase.from(this.tableName).delete();
+      let query = supabase.from(this.tableName).delete() as any;
 
       // Apply WHERE conditions
       for (const condition of this.whereConditions) {

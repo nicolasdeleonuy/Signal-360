@@ -3,7 +3,7 @@
 
 import { supabase } from '../../supabase';
 import { DatabaseErrorHandler, DatabaseOperation } from '../error-handler';
-import { DatabaseError, QueryOptions } from '../../../types/database';
+import { QueryOptions } from '../../../types/database';
 
 /**
  * Base repository class providing common database operations

@@ -1,7 +1,6 @@
-import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { BrowserRouter, MemoryRouter } from 'react-router-dom'
+import { MemoryRouter } from 'react-router-dom'
 import { LoginPage } from '../login'
 import { useAuth } from '../../contexts/auth-context'
 

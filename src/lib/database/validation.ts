@@ -2,9 +2,6 @@
 // Provides reusable validation functions for analysis data
 
 import {
-  ConvergenceFactor,
-  DivergenceFactor,
-  AnalysisReport,
   CreateAnalysisInput,
 } from '../../types/database';
 

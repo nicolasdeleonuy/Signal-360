@@ -80,7 +80,7 @@ export class EncryptionService {
    */
   static async isServiceAvailable(): Promise<boolean> {
     try {
-      const { error } = await supabase.functions.invoke('encrypt-api-key', {
+      await supabase.functions.invoke('encrypt-api-key', {
         body: { api_key: 'test' }
       });
 

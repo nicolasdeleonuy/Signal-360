@@ -10,7 +10,7 @@ export interface SessionData {
 export class SessionManager {
   private static readonly SESSION_KEY = 'signal360_session'
   private static readonly REFRESH_THRESHOLD = 5 * 60 * 1000 // 5 minutes before expiry
-  private refreshTimer: NodeJS.Timeout | null = null
+  private static refreshTimer: NodeJS.Timeout | null = null
 
   /**
    * Initialize session management
