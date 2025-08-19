@@ -1,3 +1,175 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-50 font-sans antialiased;
+  }
+}
+
+@layer components {
+  /* Layout Principal */
+  .dashboard-container {
+    @apply max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8;
+  }
+  .dashboard-header {
+    @apply flex justify-between items-center mb-6;
+  }
+  .dashboard-header h1 {
+    @apply text-2xl font-bold text-slate-800;
+  }
+  .user-info span {
+    @apply text-sm text-slate-600;
+  }
+
+  /* Indicador de Pasos */
+  .step-indicator {
+    @apply flex items-center justify-center space-x-2 sm:space-x-4 p-4 bg-white rounded-xl shadow-md mb-8;
+  }
+  .step {
+    @apply text-center text-xs sm:text-sm font-semibold text-slate-400 transition-colors duration-300;
+  }
+  .step.completed {
+    @apply text-blue-600;
+  }
+  .step.active {
+    @apply text-blue-600 font-bold scale-110;
+  }
+
+  /* Contenido del Paso Actual */
+  .step-content-card {
+    @apply bg-white rounded-xl shadow-lg p-6 sm:p-10;
+  }
+  .step-content-card h2 {
+    @apply text-3xl font-bold text-slate-900 mb-2 text-center;
+  }
+  .step-content-card p {
+    @apply text-slate-500 mb-8 text-center max-w-lg mx-auto;
+  }
+
+  /* Placeholder de Síntesis */
+  .synthesis-progress-placeholder {
+    @apply flex flex-col items-center justify-center space-y-4 text-slate-600;
+  }
+  .spinner {
+    @apply w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin;
+  }
+
+  /* Banner de Error */
+  .error-banner {
+    @apply bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-6;
+  }
+
+  /* Goal Selection Styles */
+  .goal-selection {
+    @apply bg-white rounded-xl shadow-lg p-6 sm:p-10;
+  }
+  
+  .goal-selection-header h2 {
+    @apply text-3xl font-bold text-slate-900 mb-2 text-center;
+  }
+  
+  .goal-selection-subtitle {
+    @apply text-slate-500 mb-8 text-center max-w-lg mx-auto;
+  }
+  
+  .goal-options {
+    @apply grid grid-cols-1 md:grid-cols-2 gap-6 mb-8;
+  }
+  
+  .goal-card {
+    @apply relative bg-white border-2 border-slate-200 rounded-xl p-6 cursor-pointer transition-all duration-300 hover:border-blue-300 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+  }
+  
+  .goal-card.selected {
+    @apply border-blue-500 bg-blue-50 shadow-lg;
+  }
+  
+  .goal-card.disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+  
+  .goal-icon {
+    @apply text-4xl mb-4 text-center;
+  }
+  
+  .goal-content h3 {
+    @apply text-xl font-bold text-slate-900 mb-2;
+  }
+  
+  .goal-description {
+    @apply text-slate-600 mb-4 text-sm leading-relaxed;
+  }
+  
+  .goal-features {
+    @apply flex flex-wrap gap-2;
+  }
+  
+  .feature-tag {
+    @apply bg-slate-100 text-slate-700 px-2 py-1 rounded-full text-xs font-medium;
+  }
+  
+  .goal-card.selected .feature-tag {
+    @apply bg-blue-100 text-blue-700;
+  }
+  
+  .goal-tooltip {
+    @apply absolute bottom-2 left-2 right-2 bg-slate-800 text-white text-xs p-2 rounded opacity-0 transition-opacity duration-300 pointer-events-none;
+  }
+  
+  .goal-card:hover .goal-tooltip {
+    @apply opacity-100;
+  }
+  
+  /* Timeframe Selection Styles */
+  .timeframe-selection {
+    @apply mt-8 p-6 bg-slate-50 rounded-xl;
+  }
+  
+  .timeframe-selection h3 {
+    @apply text-xl font-bold text-slate-900 mb-2;
+  }
+  
+  .timeframe-subtitle {
+    @apply text-slate-600 mb-4 text-sm;
+  }
+  
+  .timeframe-grid {
+    @apply grid grid-cols-2 md:grid-cols-3 gap-3;
+  }
+  
+  .timeframe-card {
+    @apply bg-white border border-slate-200 rounded-lg p-3 cursor-pointer transition-all duration-200 hover:border-blue-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+  }
+  
+  .timeframe-card.selected {
+    @apply border-blue-500 bg-blue-50;
+  }
+  
+  .timeframe-card.disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+  
+  .timeframe-label {
+    @apply font-semibold text-slate-900 text-sm;
+  }
+  
+  .timeframe-description {
+    @apply text-slate-600 text-xs mt-1;
+  }
+  
+  /* Goal Loading Styles */
+  .goal-loading {
+    @apply flex flex-col items-center justify-center space-y-4 text-slate-600 mt-8;
+  }
+  
+  .loading-spinner {
+    @apply w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin;
+  }
+  
+  /* Screen Reader Only */
+  .sr-only {
+    @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0;
+  }
+}
