@@ -1,4 +1,3 @@
-import React from 'react'
 import { render, screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
@@ -486,7 +485,6 @@ describe('Authentication End-to-End Tests', () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
 
       // Force an error by mocking a component to throw
-      const originalProfilePage = require('../pages/profile').ProfilePage
       jest.doMock('../pages/profile', () => ({
         ProfilePage: () => {
           throw new Error('Component error')

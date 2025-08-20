@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '../contexts/auth-context';
+import { useSignalAnalysis } from '../hooks/useSignalAnalysis';
 import { DashboardState, InvestmentGoalType, AnalysisProgress, InvestmentGoal, AnalysisResult } from '../types/dashboard';
 import { TickerInput } from '../components/TickerInput';
 import AnalysisProgressComponent from '../components/AnalysisProgress';
@@ -20,6 +21,7 @@ const initialDashboardState: DashboardState = {
 
 export function DashboardPage() {
   const { user } = useAuth();
+  const { data: analysisData, error: analysisError, isLoading: analysisLoading, runAnalysis } = useSignalAnalysis();
   const [dashboardState, setDashboardState] = useState<DashboardState>(initialDashboardState);
 
   const createMockProgress = useCallback((overallProgress: number): AnalysisProgress => {
@@ -38,12 +40,25 @@ export function DashboardPage() {
     };
   }, []);
 
-  const handleTickerSubmit = useCallback((ticker: string) => {
-    setDashboardState(prev => ({ ...prev, tickerSymbol: ticker, currentStep: 'analysis', loading: true, error: null, analysisProgress: createMockProgress(0) }));
-  }, [createMockProgress]);
+  const handleTickerSubmit = useCallback(async (ticker: string) => {
+    // Clear previous state and set to analysis step
+    setDashboardState(prev => ({ 
+      ...prev, 
+      tickerSymbol: ticker, 
+      currentStep: 'analysis', 
+      loading: false, // We'll use analysisLoading from the hook
+      error: null, 
+      analysisProgress: createMockProgress(0) 
+    }));
+    
+    // Trigger the real analysis
+    await runAnalysis(ticker);
+  }, [createMockProgress, runAnalysis]);
 
   const handleCancelAnalysis = useCallback(() => {
     setDashboardState(prev => ({ ...prev, currentStep: 'input', loading: false, analysisProgress: null, error: null }));
+    // Note: The useSignalAnalysis hook doesn't expose a cancel function, 
+    // but the state will be reset when a new analysis is started
   }, []);
 
   const handleGoalSelection = useCallback((goal: InvestmentGoal) => {
@@ -62,6 +77,7 @@ export function DashboardPage() {
 
   const handleNewAnalysis = useCallback(() => {
     setDashboardState(initialDashboardState);
+    // The useSignalAnalysis hook state will be reset when a new analysis is started
   }, []);
 
   useEffect(() => {
@@ -90,6 +106,34 @@ export function DashboardPage() {
     }
   }, [dashboardState.currentStep, dashboardState.loading, createMockResults]);
 
+  // Handle analysis completion and errors from the useSignalAnalysis hook
+  useEffect(() => {
+    if (dashboardState.currentStep === 'analysis') {
+      if (analysisError) {
+        // Show error and allow user to retry
+        setDashboardState(prev => ({ 
+          ...prev, 
+          error: { 
+            type: 'api' as const,
+            message: analysisError,
+            recoverable: true
+          }, 
+          loading: false,
+          currentStep: 'input' // Return to input step for retry
+        }));
+      } else if (analysisData && !analysisLoading) {
+        // Analysis completed successfully, move to goal selection
+        setDashboardState(prev => ({ 
+          ...prev, 
+          currentStep: 'goal-selection', 
+          loading: false, 
+          analysisProgress: createMockProgress(100),
+          error: null
+        }));
+      }
+    }
+  }, [analysisData, analysisError, analysisLoading, dashboardState.currentStep, createMockProgress]);
+
   const renderStepContent = () => {
     switch (dashboardState.currentStep) {
       case 'input':
@@ -97,7 +141,7 @@ export function DashboardPage() {
           <div className="step-content-card">
             <h2>Enter Ticker Symbol</h2>
             <p>Start your comprehensive financial analysis by entering a stock ticker symbol.</p>
-            <TickerInput onSubmit={handleTickerSubmit} loading={dashboardState.loading} error={dashboardState.error?.message || null} placeholder="Enter ticker (e.g., AAPL)" autoFocus={true} />
+            <TickerInput onSubmit={handleTickerSubmit} loading={analysisLoading} error={dashboardState.error?.message || null} placeholder="Enter ticker (e.g., AAPL)" autoFocus={true} />
           </div>
         );
       case 'analysis':
@@ -105,7 +149,15 @@ export function DashboardPage() {
           <div className="step-content-card">
             <h2>Analyzing {dashboardState.tickerSymbol}</h2>
             <p>Running comprehensive analysis across fundamental, technical, and ESG factors...</p>
-            {dashboardState.analysisProgress && <AnalysisProgressComponent progress={dashboardState.analysisProgress} onCancel={handleCancelAnalysis} />}
+            {analysisLoading && dashboardState.analysisProgress && (
+              <AnalysisProgressComponent progress={dashboardState.analysisProgress} onCancel={handleCancelAnalysis} />
+            )}
+            {!analysisLoading && analysisData && (
+              <div className="analysis-complete">
+                <p>✅ Analysis completed successfully!</p>
+                <p>Ready to proceed to goal selection.</p>
+              </div>
+            )}
           </div>
         );
       case 'goal-selection':

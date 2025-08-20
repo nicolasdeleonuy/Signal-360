@@ -1,4 +1,3 @@
-import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
@@ -119,7 +118,7 @@ describe('ProfilePage', () => {
 
   it('should show loading state during sign out', async () => {
     const user = userEvent.setup()
-    let resolveSignOut: () => void
+    let resolveSignOut: (value: unknown) => void
     mockSignOut.mockImplementation(() => new Promise(resolve => {
       resolveSignOut = resolve
     }))
@@ -132,7 +131,7 @@ describe('ProfilePage', () => {
     expect(signOutButton).toBeDisabled()
 
     // Resolve the promise
-    resolveSignOut!()
+    resolveSignOut!({ error: null })
     await waitFor(() => {
       expect(screen.queryByText('Signing Out...')).not.toBeInTheDocument()
     })

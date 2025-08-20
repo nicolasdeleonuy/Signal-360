@@ -1,4 +1,3 @@
-import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
@@ -167,7 +166,6 @@ describe('LoginPage Integration', () => {
     })
 
     // Mock auth state change to simulate successful login
-    let authStateCallback: (event: string, session: any) => void
     jest.doMock('../../lib/supabase', () => ({
       supabase: {
         auth: {
@@ -175,11 +173,8 @@ describe('LoginPage Integration', () => {
             data: { session: null },
             error: null,
           }),
-          onAuthStateChange: jest.fn().mockImplementation((callback) => {
-            authStateCallback = callback
-            return {
-              data: { subscription: { unsubscribe: jest.fn() } },
-            }
+          onAuthStateChange: jest.fn().mockReturnValue({
+            data: { subscription: { unsubscribe: jest.fn() } },
           }),
           signInWithPassword: mockSignInWithPassword,
           signUp: jest.fn(),

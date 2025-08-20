@@ -1,4 +1,3 @@
-import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
@@ -6,6 +5,7 @@ import { ProfilePage } from '../profile'
 import { LoginPage } from '../login'
 import { ProtectedRoute } from '../../components/protected-route'
 import { AuthProvider } from '../../contexts/auth-context'
+import { MockAuthCallback } from '../../types/mocks'
 
 // Mock Supabase
 const mockSignOut = jest.fn()
@@ -119,9 +119,9 @@ describe('ProfilePage with ProtectedRoute', () => {
   })
 
   it('should maintain protection even after auth state changes', async () => {
-    let authStateCallback: (event: string, session: any) => void
+    let authStateCallback: MockAuthCallback
 
-    supabase.auth.onAuthStateChange.mockImplementation((callback) => {
+    supabase.auth.onAuthStateChange.mockImplementation((callback: MockAuthCallback) => {
       authStateCallback = callback
       return {
         data: { subscription: { unsubscribe: jest.fn() } },
@@ -158,8 +158,8 @@ describe('ProfilePage with ProtectedRoute', () => {
     })
 
     // Trigger a re-render or auth state change
-    let authStateCallback: (event: string, session: any) => void
-    supabase.auth.onAuthStateChange.mockImplementation((callback) => {
+    let authStateCallback: MockAuthCallback
+    supabase.auth.onAuthStateChange.mockImplementation((callback: MockAuthCallback) => {
       authStateCallback = callback
       return {
         data: { subscription: { unsubscribe: jest.fn() } },

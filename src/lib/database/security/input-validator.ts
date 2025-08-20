@@ -368,7 +368,7 @@ export class InputValidator {
       }
 
       if (schema.properties) {
-        for (const [key, value] of Object.entries(obj)) {
+        for (const [key, _value] of Object.entries(obj)) {
           if (!(key in schema.properties)) {
             throw this.createValidationError(`Unknown field: ${key}`);
           }

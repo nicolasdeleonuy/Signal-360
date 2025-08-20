@@ -63,6 +63,25 @@ export class ValidationService {
   }
 
   /**
+   * Validate Google API key format
+   * @param key API key to validate
+   * @returns boolean True if valid
+   */
+  static isValidApiKeyFormat(key: string): boolean {
+    if (!key || typeof key !== 'string') {
+      return false;
+    }
+
+    const trimmedKey = key.trim();
+    
+    // Google API keys are typically 39 characters long and contain alphanumeric characters, hyphens, and underscores
+    // They usually start with "AIza" for most Google services
+    const googleApiKeyPattern = /^AIza[0-9A-Za-z_-]{35}$/;
+    
+    return googleApiKeyPattern.test(trimmedKey);
+  }
+
+  /**
    * Validate convergence factor structure
    * @param factor Factor to validate
    * @returns ValidationResult Validation result with details
@@ -340,4 +359,8 @@ export const VALIDATION_CONSTRAINTS = {
     '1m', '5m', '15m', '30m', '1h', '2h', '4h', '6h', '8h', '12h',
     '1D', '1W', '1M', '3M', '6M', '1Y'
   ],
+  GOOGLE_API_KEY: {
+    LENGTH: 39,
+    PATTERN: /^AIza[0-9A-Za-z_-]{35}$/,
+  },
 } as const;

@@ -43,7 +43,7 @@ export class AnalysisRepository extends BaseRepository<Analysis, CreateAnalysisI
           user_id: userId,
           ticker_symbol: ValidationService.sanitizeTickerSymbol(data.ticker_symbol),
           analysis_context: data.analysis_context,
-          trading_timeframe: data.trading_timeframe || null,
+          trading_timeframe: data.trading_timeframe ?? null,
           synthesis_score: ValidationService.sanitizeSynthesisScore(data.synthesis_score),
           convergence_factors: data.convergence_factors,
           divergence_factors: data.divergence_factors,

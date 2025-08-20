@@ -1,6 +1,5 @@
-import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
-import { BrowserRouter, Routes, Route, MemoryRouter } from 'react-router-dom'
+import { Routes, Route, MemoryRouter } from 'react-router-dom'
 import { ProtectedRoute } from '../protected-route'
 import { AuthProvider } from '../../contexts/auth-context'
 

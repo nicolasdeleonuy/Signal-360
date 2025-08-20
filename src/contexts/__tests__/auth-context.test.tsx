@@ -1,7 +1,8 @@
-import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import { AuthProvider, useAuth } from '../auth-context'
 import { supabase } from '../../lib/supabase'
+import { MockSupabaseClient } from '../../types/mocks'
+import { AuthChangeEvent, Session } from '@supabase/supabase-js'
 
 // Mock Supabase
 jest.mock('../../lib/supabase', () => ({
@@ -16,7 +17,7 @@ jest.mock('../../lib/supabase', () => ({
   },
 }))
 
-const mockSupabase = supabase as jest.Mocked<typeof supabase>
+const mockSupabase = supabase as unknown as MockSupabaseClient
 
 // Test component that uses the auth context
 function TestComponent() {
@@ -182,7 +183,7 @@ describe('AuthContext', () => {
   })
 
   it('should handle auth state changes', async () => {
-    let authStateCallback: (event: string, session: any) => void
+    let authStateCallback: (event: AuthChangeEvent, session: Session | null) => void | Promise<void>
 
     mockSupabase.auth.onAuthStateChange.mockImplementation((callback) => {
       authStateCallback = callback
@@ -205,7 +206,10 @@ describe('AuthContext', () => {
     const mockSession = {
       user: { id: '1', email: 'test@example.com' },
       access_token: 'token',
-    }
+      refresh_token: 'refresh_token',
+      expires_in: 3600,
+      token_type: 'bearer'
+    } as Session
 
     authStateCallback!('SIGNED_IN', mockSession)
 

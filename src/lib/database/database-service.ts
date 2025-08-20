@@ -414,7 +414,7 @@ export class DatabaseService {
       
       return {
         isConnected,
-        url: supabase.supabaseUrl,
+        url: import.meta.env.VITE_SUPABASE_URL || 'unknown',
         timestamp: new Date().toISOString(),
       };
     } catch (error) {

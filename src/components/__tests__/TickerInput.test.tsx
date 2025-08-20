@@ -237,7 +237,7 @@ describe('TickerInput Component', () => {
     });
 
     it('should show loading indicator while fetching suggestions', async () => {
-      const user = userEvent.setup({ advanceTimers: vi.advanceTimers });
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
       mockInvoke.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 1000)));
       
       render(<TickerInput {...defaultProps} />);
@@ -409,7 +409,6 @@ describe('TickerInput Component', () => {
     });
 
     it('should update ARIA attributes when there are errors', async () => {
-      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
       render(<TickerInput {...defaultProps} error="Test error" />);
       
       const input = screen.getByRole('combobox');

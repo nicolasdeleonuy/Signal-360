@@ -141,7 +141,7 @@ describe('LoginPage', () => {
 
   it('should show loading state during submission', async () => {
     const user = userEvent.setup()
-    let resolveSignIn: () => void
+    let resolveSignIn: (value: unknown) => void
     mockSignIn.mockImplementation(() => new Promise(resolve => {
       resolveSignIn = resolve
     }))
@@ -159,7 +159,7 @@ describe('LoginPage', () => {
     expect(submitButton).toBeDisabled()
 
     // Resolve the promise
-    resolveSignIn!()
+    resolveSignIn!({ data: { user: null, session: null }, error: null })
     await waitFor(() => {
       expect(screen.queryByText('Signing In...')).not.toBeInTheDocument()
     })
@@ -237,7 +237,7 @@ describe('LoginPage', () => {
 
   it('should disable form inputs during submission', async () => {
     const user = userEvent.setup()
-    let resolveSignIn: () => void
+    let resolveSignIn: (value: unknown) => void
     mockSignIn.mockImplementation(() => new Promise(resolve => {
       resolveSignIn = resolve
     }))
@@ -256,7 +256,7 @@ describe('LoginPage', () => {
     expect(submitButton).toBeDisabled()
 
     // Resolve the promise
-    resolveSignIn!()
+    resolveSignIn!({ data: { user: null, session: null }, error: null })
     await waitFor(() => {
       expect(emailInput).not.toBeDisabled()
     })

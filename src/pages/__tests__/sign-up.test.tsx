@@ -195,7 +195,7 @@ describe('SignUpPage', () => {
 
   it('should show loading state during submission', async () => {
     const user = userEvent.setup()
-    let resolveSignUp: () => void
+    let resolveSignUp: (value: unknown) => void
     mockSignUp.mockImplementation(() => new Promise(resolve => {
       resolveSignUp = resolve
     }))
@@ -215,7 +215,7 @@ describe('SignUpPage', () => {
     expect(submitButton).toBeDisabled()
 
     // Resolve the promise
-    resolveSignUp!()
+    resolveSignUp!({ data: { user: null, session: null }, error: null })
     await waitFor(() => {
       expect(screen.queryByText('Creating Account...')).not.toBeInTheDocument()
     })
@@ -261,7 +261,7 @@ describe('SignUpPage', () => {
 
   it('should disable form inputs during submission', async () => {
     const user = userEvent.setup()
-    let resolveSignUp: () => void
+    let resolveSignUp: (value: unknown) => void
     mockSignUp.mockImplementation(() => new Promise(resolve => {
       resolveSignUp = resolve
     }))
@@ -283,7 +283,7 @@ describe('SignUpPage', () => {
     expect(submitButton).toBeDisabled()
 
     // Resolve the promise
-    resolveSignUp!()
+    resolveSignUp!({ data: { user: null, session: null }, error: null })
     await waitFor(() => {
       expect(emailInput).not.toBeDisabled()
     })
