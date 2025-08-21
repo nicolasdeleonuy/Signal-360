@@ -3,15 +3,16 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { LoginPage } from '../login'
 import { useAuth } from '../../contexts/auth-context'
+import { vi } from 'vitest'
 
 // Mock the auth context
-jest.mock('../../contexts/auth-context')
-const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>
+vi.mock('../../contexts/auth-context')
+const mockUseAuth = useAuth as any
 
 // Mock navigate
-const mockNavigate = jest.fn()
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+const mockNavigate = vi.fn()
+vi.mock('react-router-dom', () => ({
+  ...vi.importActual('react-router-dom'),
   useNavigate: () => mockNavigate,
 }))
 
@@ -24,17 +25,17 @@ function renderLoginPage(initialEntries = ['/login']) {
 }
 
 describe('LoginPage', () => {
-  const mockSignIn = jest.fn()
+  const mockSignIn = vi.fn()
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockUseAuth.mockReturnValue({
       user: null,
       session: null,
       loading: false,
-      signUp: jest.fn(),
+      signUp: vi.fn(),
       signIn: mockSignIn,
-      signOut: jest.fn(),
+      signOut: vi.fn(),
     })
   })
 
@@ -177,9 +178,9 @@ describe('LoginPage', () => {
       user: mockUser as any,
       session: { user: mockUser } as any,
       loading: false,
-      signUp: jest.fn(),
+      signUp: vi.fn(),
       signIn: mockSignIn,
-      signOut: jest.fn(),
+      signOut: vi.fn(),
     })
 
     renderLoginPage()
@@ -199,9 +200,9 @@ describe('LoginPage', () => {
       user: mockUser as any,
       session: { user: mockUser } as any,
       loading: false,
-      signUp: jest.fn(),
+      signUp: vi.fn(),
       signIn: mockSignIn,
-      signOut: jest.fn(),
+      signOut: vi.fn(),
     })
 
     // Simulate coming from a protected route
@@ -224,9 +225,9 @@ describe('LoginPage', () => {
       user: null,
       session: null,
       loading: true,
-      signUp: jest.fn(),
+      signUp: vi.fn(),
       signIn: mockSignIn,
-      signOut: jest.fn(),
+      signOut: vi.fn(),
     })
 
     renderLoginPage()

@@ -4,18 +4,19 @@ import { MemoryRouter } from 'react-router-dom'
 import App from '../App'
 import { MockAuthCallback } from '../types/mocks'
 import { Session } from '@supabase/supabase-js'
+import { vi } from 'vitest'
 
 // Mock Supabase
-const mockSignInWithPassword = jest.fn()
-const mockSignUp = jest.fn()
-const mockSignOut = jest.fn()
+const mockSignInWithPassword = vi.fn()
+const mockSignUp = vi.fn()
+const mockSignOut = vi.fn()
 
-jest.mock('../lib/supabase', () => ({
+vi.mock('../lib/supabase', () => ({
   supabase: {
     auth: {
-      getSession: jest.fn(),
-      onAuthStateChange: jest.fn().mockReturnValue({
-        data: { subscription: { unsubscribe: jest.fn() } },
+      getSession: vi.fn(),
+      onAuthStateChange: vi.fn().mockReturnValue({
+        data: { subscription: { unsubscribe: vi.fn() } },
       }),
       signUp: mockSignUp,
       signInWithPassword: mockSignInWithPassword,
@@ -28,7 +29,7 @@ const { supabase } = require('../lib/supabase')
 
 describe('Complete Routing Flow', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('should handle complete user journey from sign-up to profile', async () => {
@@ -39,7 +40,7 @@ describe('Complete Routing Flow', () => {
     supabase.auth.onAuthStateChange.mockImplementation((callback: MockAuthCallback) => {
       authStateCallback = callback
       return {
-        data: { subscription: { unsubscribe: jest.fn() } },
+        data: { subscription: { unsubscribe: vi.fn() } },
       }
     })
 
@@ -138,7 +139,7 @@ describe('Complete Routing Flow', () => {
     supabase.auth.onAuthStateChange.mockImplementation((callback: MockAuthCallback) => {
       authStateCallback = callback
       return {
-        data: { subscription: { unsubscribe: jest.fn() } },
+        data: { subscription: { unsubscribe: vi.fn() } },
       }
     })
 
@@ -212,7 +213,7 @@ describe('Complete Routing Flow', () => {
     supabase.auth.onAuthStateChange.mockImplementation((callback: MockAuthCallback) => {
       authStateCallback = callback
       return {
-        data: { subscription: { unsubscribe: jest.fn() } },
+        data: { subscription: { unsubscribe: vi.fn() } },
       }
     })
 

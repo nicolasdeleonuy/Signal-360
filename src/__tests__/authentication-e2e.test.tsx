@@ -2,20 +2,21 @@ import { render, screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import App from '../App'
+import { vi } from 'vitest'
 
 // Mock Supabase
-const mockSignInWithPassword = jest.fn()
-const mockSignUp = jest.fn()
-const mockSignOut = jest.fn()
-const mockRefreshSession = jest.fn()
-const mockGetSession = jest.fn()
+const mockSignInWithPassword = vi.fn()
+const mockSignUp = vi.fn()
+const mockSignOut = vi.fn()
+const mockRefreshSession = vi.fn()
+const mockGetSession = vi.fn()
 
-jest.mock('../lib/supabase', () => ({
+vi.mock('../lib/supabase', () => ({
   supabase: {
     auth: {
       getSession: mockGetSession,
-      onAuthStateChange: jest.fn().mockReturnValue({
-        data: { subscription: { unsubscribe: jest.fn() } },
+      onAuthStateChange: vi.fn().mockReturnValue({
+        data: { subscription: { unsubscribe: vi.fn() } },
       }),
       signUp: mockSignUp,
       signInWithPassword: mockSignInWithPassword,
@@ -27,10 +28,10 @@ jest.mock('../lib/supabase', () => ({
 
 // Mock localStorage
 const localStorageMock = {
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-  clear: jest.fn(),
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
 }
 Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
@@ -61,7 +62,7 @@ describe('Authentication End-to-End Tests', () => {
   }
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     localStorageMock.getItem.mockReturnValue(null)
     
     // Default to no session
@@ -482,10 +483,10 @@ describe('Authentication End-to-End Tests', () => {
 
     it('should handle component errors with error boundary', async () => {
       // Mock console.error to suppress error boundary logs
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
       // Force an error by mocking a component to throw
-      jest.doMock('../pages/profile', () => ({
+      vi.doMock('../pages/profile', () => ({
         ProfilePage: () => {
           throw new Error('Component error')
         }
@@ -510,7 +511,7 @@ describe('Authentication End-to-End Tests', () => {
       expect(screen.getByRole('button', { name: 'Refresh Page' })).toBeInTheDocument()
 
       // Restore mocks
-      jest.unmock('../pages/profile')
+      vi.unmock('../pages/profile')
       consoleSpy.mockRestore()
     })
   })

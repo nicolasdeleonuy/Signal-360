@@ -51,7 +51,7 @@ export function DashboardPage() {
       analysisProgress: createMockProgress(0) 
     }));
     
-    // Trigger the real analysis
+    // Trigger the real analysis using the hook
     await runAnalysis(ticker);
   }, [createMockProgress, runAnalysis]);
 
@@ -141,7 +141,7 @@ export function DashboardPage() {
           <div className="step-content-card">
             <h2>Enter Ticker Symbol</h2>
             <p>Start your comprehensive financial analysis by entering a stock ticker symbol.</p>
-            <TickerInput onSubmit={handleTickerSubmit} loading={analysisLoading} error={dashboardState.error?.message || null} placeholder="Enter ticker (e.g., AAPL)" autoFocus={true} />
+            <TickerInput onSubmit={handleTickerSubmit} loading={analysisLoading} error={dashboardState.error?.message || analysisError} placeholder="Enter ticker (e.g., AAPL)" autoFocus={true} />
           </div>
         );
       case 'analysis':
