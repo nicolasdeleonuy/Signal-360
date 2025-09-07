@@ -34,4 +34,4 @@ dist-ssr
 coverage/
 
 # Build
-build/
+build/*.code-workspace
