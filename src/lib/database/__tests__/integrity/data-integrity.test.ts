@@ -5,7 +5,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { DatabaseService } from '../../database-service';
 import { ProfileRepository } from '../../repositories/profile-repository';
 import { AnalysisRepository } from '../../repositories/analysis-repository';
-import { supabase } from '../../../supabase';
+import { supabase } from '../../../supabaseClient';
 import { CreateAnalysisInput } from '../../../../types/database';
 
 // Mock Supabase for integrity testing

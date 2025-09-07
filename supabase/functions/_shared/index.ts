@@ -82,6 +82,7 @@ export {
 // Configuration management
 export {
   getConfig,
+  CONSTANTS,
   type Config
 } from './config.ts';
 
@@ -154,6 +155,67 @@ export {
   type AnalysisCacheConfig,
   CacheInvalidationStrategy
 } from './analysis-cache.ts';
+
+// Connection pooling for external APIs
+export {
+  APIConnectionPool,
+  globalConnectionPool,
+  initializeAPIConnections,
+  makePooledAPIRequest,
+  type APIConnectionConfig,
+  type PooledConnection
+} from './connection-pool.ts';
+
+// Response compression and optimization
+export {
+  ResponseCompressor,
+  PayloadOptimizer,
+  globalResponseCompressor,
+  globalPayloadOptimizer,
+  createOptimizedResponse,
+  type CompressionConfig,
+  type CompressionResult
+} from './compression.ts';
+
+// Performance monitoring and metrics
+export {
+  PerformanceMonitor,
+  globalPerformanceMonitor,
+  monitored,
+  PerformanceTracker,
+  type MetricType,
+  type PerformanceMetric,
+  type MetricStats,
+  type CachePerformanceMetrics,
+  type SystemPerformanceMetrics
+} from './performance-monitor.ts';
+
+// Response formatting utilities have been moved inline to the main orchestrator
+
+// Analysis-specific error handling and monitoring
+export {
+  AnalysisError,
+  AnalysisStage,
+  AnalysisPipelineMonitor,
+  TickerValidator,
+  callExternalAnalysisAPI,
+  GracefulDegradationHandler,
+  AnalysisPerformanceMonitor,
+  globalRateLimiter,
+  globalCircuitBreakers,
+  ANALYSIS_ERROR_CODES
+} from './analysis-error-handler.ts';
+
+// API Key Service for secure key management
+export {
+  ApiKeyService,
+  getDecryptedApiKey,
+  hasValidApiKey,
+  authenticateWithApiKey,
+  type ApiKeyInfo,
+  type DecryptedApiKey,
+  type ApiKeyValidation
+} from './api-key-service.ts';
 
 // Type definitions
 export * from './types.ts';

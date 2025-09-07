@@ -1,15 +1,17 @@
+// Migrated to Vitest
 import { render, screen } from '@testing-library/react'
+import { vi } from 'vitest'
 import { BrowserRouter } from 'react-router-dom'
 import { withAuth } from '../with-auth'
 import { useAuth } from '../../contexts/auth-context'
 
 // Mock the auth context
-jest.mock('../../contexts/auth-context')
-const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>
+vi.mock('../../contexts/auth-context')
+const mockUseAuth = useAuth as vi.MockedFunction<typeof useAuth>
 
 // Mock Navigate component
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+vi.mock('react-router-dom', async () => ({
+  ...await vi.importActual('react-router-dom'),
   Navigate: ({ to }: any) => <div data-testid="navigate">Redirecting to {to}</div>,
 }))
 
@@ -30,7 +32,7 @@ function TestComponent({ title, count }: TestComponentProps) {
 
 describe('withAuth HOC', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('should wrap component with authentication protection', () => {
@@ -45,9 +47,9 @@ describe('withAuth HOC', () => {
       user: mockUser as any,
       session: { user: mockUser } as any,
       loading: false,
-      signUp: jest.fn(),
-      signIn: jest.fn(),
-      signOut: jest.fn(),
+      signUp: vi.fn(),
+      signIn: vi.fn(),
+      signOut: vi.fn(),
     })
 
     const ProtectedTestComponent = withAuth(TestComponent)
@@ -68,9 +70,9 @@ describe('withAuth HOC', () => {
       user: null,
       session: null,
       loading: false,
-      signUp: jest.fn(),
-      signIn: jest.fn(),
-      signOut: jest.fn(),
+      signUp: vi.fn(),
+      signIn: vi.fn(),
+      signOut: vi.fn(),
     })
 
     const ProtectedTestComponent = withAuth(TestComponent)
@@ -90,9 +92,9 @@ describe('withAuth HOC', () => {
       user: null,
       session: null,
       loading: true,
-      signUp: jest.fn(),
-      signIn: jest.fn(),
-      signOut: jest.fn(),
+      signUp: vi.fn(),
+      signIn: vi.fn(),
+      signOut: vi.fn(),
     })
 
     const ProtectedTestComponent = withAuth(TestComponent)
@@ -112,9 +114,9 @@ describe('withAuth HOC', () => {
       user: null,
       session: null,
       loading: true,
-      signUp: jest.fn(),
-      signIn: jest.fn(),
-      signOut: jest.fn(),
+      signUp: vi.fn(),
+      signIn: vi.fn(),
+      signOut: vi.fn(),
     })
 
     const customFallback = <div data-testid="custom-fallback">Custom Loading...</div>
@@ -154,9 +156,9 @@ describe('withAuth HOC', () => {
       user: mockUser as any,
       session: { user: mockUser } as any,
       loading: false,
-      signUp: jest.fn(),
-      signIn: jest.fn(),
-      signOut: jest.fn(),
+      signUp: vi.fn(),
+      signIn: vi.fn(),
+      signOut: vi.fn(),
     })
 
     interface ComplexProps {
@@ -183,7 +185,7 @@ describe('withAuth HOC', () => {
     }
 
     const ProtectedComplexComponent = withAuth(ComplexComponent)
-    const mockOnClick = jest.fn()
+    const mockOnClick = vi.fn()
 
     render(
       <BrowserRouter>

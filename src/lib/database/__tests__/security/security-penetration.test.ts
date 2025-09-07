@@ -6,7 +6,7 @@ import { RLSEnforcer, SecurityOperation } from '../../security/rls-enforcer';
 import { InputValidator } from '../../security/input-validator';
 import { SecureQueryBuilder } from '../../security/query-builder';
 import { DatabaseService } from '../../database-service';
-import { supabase } from '../../../supabase';
+import { supabase } from '../../../supabaseClient';
 
 // Mock Supabase for security testing
 vi.mock('../../../supabase', () => ({

@@ -1,0 +1,5 @@
+# Search Components Directory
+
+This directory will contain the predictive ticker search components:
+- TickerSearch.tsx - Main search component with autocomplete functionality
+- Related test files and utilities

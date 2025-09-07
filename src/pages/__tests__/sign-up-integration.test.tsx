@@ -24,7 +24,7 @@ vi.mock('../../lib/supabase', () => ({
 }))
 
 // Get the mocked signUp function
-import { supabase } from '../../lib/supabase'
+import { supabase } from '../../lib/supabaseClient'
 const mockSignUp = vi.mocked(supabase.auth.signUp)
 
 function TestApp({ initialEntries = ['/sign-up'] }: { initialEntries?: string[] }) {

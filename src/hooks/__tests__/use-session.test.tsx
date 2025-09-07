@@ -1,17 +1,19 @@
+// Migrated to Vitest
 import { renderHook, act } from '@testing-library/react'
+import { vi } from 'vitest'
 import { useSession } from '../use-session'
 import { useAuth } from '../../contexts/auth-context'
 import { SessionManager } from '../../utils/session-manager'
 
 // Mock dependencies
-jest.mock('../../contexts/auth-context')
-jest.mock('../../utils/session-manager')
+vi.mock('../../contexts/auth-context')
+vi.mock('../../utils/session-manager')
 
-const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>
-const mockSessionManager = SessionManager as jest.Mocked<typeof SessionManager>
+const mockUseAuth = useAuth as vi.MockedFunction<typeof useAuth>
+const mockSessionManager = SessionManager as vi.Mocked<typeof SessionManager>
 
 // Mock timers
-jest.useFakeTimers()
+vi.useFakeTimers()
 
 describe('useSession', () => {
   const mockSession = {
@@ -29,14 +31,14 @@ describe('useSession', () => {
   }
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockUseAuth.mockReturnValue({
       user: mockSession.user as any,
       session: mockSession as any,
       loading: false,
-      signUp: jest.fn(),
-      signIn: jest.fn(),
-      signOut: jest.fn(),
+      signUp: vi.fn(),
+      signIn: vi.fn(),
+      signOut: vi.fn(),
     })
 
     mockSessionManager.getTimeRemaining.mockReturnValue(3600000) // 1 hour
@@ -45,9 +47,9 @@ describe('useSession', () => {
   })
 
   afterEach(() => {
-    jest.runOnlyPendingTimers()
-    jest.useRealTimers()
-    jest.useFakeTimers()
+    vi.runOnlyPendingTimers()
+    vi.useRealTimers()
+    vi.useFakeTimers()
   })
 
   it('should return session data', () => {
@@ -65,9 +67,9 @@ describe('useSession', () => {
       user: null,
       session: null,
       loading: false,
-      signUp: jest.fn(),
-      signIn: jest.fn(),
-      signOut: jest.fn(),
+      signUp: vi.fn(),
+      signIn: vi.fn(),
+      signOut: vi.fn(),
     })
 
     mockSessionManager.validateSession.mockReturnValue(false)
@@ -101,7 +103,7 @@ describe('useSession', () => {
     // Simulate time passing
     act(() => {
       timeRemaining = 3540000 // 59 minutes
-      jest.advanceTimersByTime(1000)
+      vi.advanceTimersByTime(1000)
     })
 
     expect(result.current.timeRemaining).toBe(3540000)
@@ -144,22 +146,36 @@ describe('useSession', () => {
 
   it('should prevent concurrent refresh attempts', async () => {
     mockSessionManager.refreshSession.mockImplementation(
-      () => new Promise(resolve => setTimeout(() => resolve({
-        session: mockSession as any,
-        user: mockSession.user as any,
-        expiresAt: mockSession.expires_at * 1000,
-      }), 1000))
+      () => new Promise(resolve => {
+        setTimeout(() => resolve({
+          session: mockSession as any,
+          user: mockSession.user as any,
+          expiresAt: mockSession.expires_at * 1000,
+        }), 1000)
+      })
     )
 
     const { result } = renderHook(() => useSession())
 
     // Start first refresh
-    const firstRefresh = result.current.refreshSession()
+    let firstRefresh: Promise<boolean>
+    let secondRefresh: Promise<boolean>
     
-    // Try to start second refresh immediately
-    const secondRefresh = result.current.refreshSession()
+    await act(async () => {
+      firstRefresh = result.current.refreshSession()
+    })
+    
+    // Now try to start second refresh while first is still in progress
+    await act(async () => {
+      secondRefresh = result.current.refreshSession()
+    })
+    
+    // Advance timers to resolve the setTimeout for the first refresh
+    await act(async () => {
+      vi.advanceTimersByTime(1000)
+    })
 
-    const [firstResult, secondResult] = await Promise.all([firstRefresh, secondRefresh])
+    const [firstResult, secondResult] = await Promise.all([firstRefresh!, secondRefresh!])
 
     expect(firstResult).toBe(true)
     expect(secondResult).toBe(false) // Should be prevented
@@ -180,7 +196,7 @@ describe('useSession', () => {
   })
 
   it('should clean up interval on unmount', () => {
-    const clearIntervalSpy = jest.spyOn(global, 'clearInterval')
+    const clearIntervalSpy = vi.spyOn(global, 'clearInterval')
 
     const { unmount } = renderHook(() => useSession())
 
@@ -204,9 +220,9 @@ describe('useSession', () => {
       user: newSession.user as any,
       session: newSession as any,
       loading: false,
-      signUp: jest.fn(),
-      signIn: jest.fn(),
-      signOut: jest.fn(),
+      signUp: vi.fn(),
+      signIn: vi.fn(),
+      signOut: vi.fn(),
     })
 
     mockSessionManager.getTimeRemaining.mockReturnValue(1800000) // 30 minutes

@@ -1,7 +1,7 @@
 // Analysis management service for Signal-360
 // Handles CRUD operations for analysis results with validation and JSONB support
 
-import { supabase } from '../supabase';
+import { supabase } from '../supabaseClient';
 import {
   Analysis,
   CreateAnalysisInput,

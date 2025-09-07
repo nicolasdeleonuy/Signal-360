@@ -1,18 +1,16 @@
 import { renderHook, act } from '@testing-library/react';
 import { useSignalAnalysis } from '../useSignalAnalysis';
-import { supabase } from '../../lib/supabase';
+import { apiService } from '../../lib/apiService';
 import { vi } from 'vitest';
 
-// Mock the Supabase client
-vi.mock('../../lib/supabase', () => ({
-  supabase: {
-    functions: {
-      invoke: vi.fn(),
-    },
+// Mock the API service
+vi.mock('../../lib/apiService', () => ({
+  apiService: {
+    getAnalysisForTicker: vi.fn(),
   },
 }));
 
-const mockSupabase = supabase as any;
+const mockApiService = apiService as any;
 
 describe('useSignalAnalysis', () => {
   beforeEach(() => {
@@ -40,17 +38,18 @@ describe('useSignalAnalysis', () => {
 
   describe('Loading State Transitions', () => {
     it('should set isLoading to true when runAnalysis is called', async () => {
-      mockSupabase.functions.invoke.mockResolvedValue({
+      mockApiService.getAnalysisForTicker.mockResolvedValue({
+        success: true,
+        message: 'Analysis completed',
+        executionTime: 1000,
         data: {
-          success: true,
-          message: 'Analysis completed',
-          timestamp: '2023-01-01T00:00:00Z',
-          executionTime: 1000,
           ticker: 'AAPL',
+          timestamp: '2023-01-01T00:00:00Z',
           context: 'investment',
-          data: { fundamental: {}, technical: {}, esg: {} },
+          fundamental: {},
+          technical: {},
+          esg: {},
         },
-        error: null,
       });
 
       const { result } = renderHook(() => useSignalAnalysis());

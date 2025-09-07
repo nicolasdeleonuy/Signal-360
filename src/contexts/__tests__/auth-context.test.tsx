@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { AuthProvider, useAuth } from '../auth-context'
-import { supabase } from '../../lib/supabase'
+import { supabase } from '../../lib/supabaseClient'
 import { MockSupabaseClient } from '../../types/mocks'
 import { AuthChangeEvent, Session } from '@supabase/supabase-js'
 

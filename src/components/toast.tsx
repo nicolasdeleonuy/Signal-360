@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react'
+import { useState, useEffect, createContext, useContext, ReactNode, useRef } from 'react'
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info'
 
@@ -30,6 +30,7 @@ interface ToastProviderProps {
 
 export function ToastProvider({ children }: ToastProviderProps) {
   const [toasts, setToasts] = useState<Toast[]>([])
+  const timersRef = useRef<Map<string, NodeJS.Timeout>>(new Map())
 
   const showToast = (type: ToastType, message: string, duration = 5000) => {
     const id = Math.random().toString(36).substr(2, 9)
@@ -38,15 +39,31 @@ export function ToastProvider({ children }: ToastProviderProps) {
     setToasts(prev => [...prev, toast])
 
     if (duration > 0) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         hideToast(id)
       }, duration)
+      timersRef.current.set(id, timer)
     }
   }
 
   const hideToast = (id: string) => {
+    // Clear timer if it exists
+    const timer = timersRef.current.get(id)
+    if (timer) {
+      clearTimeout(timer)
+      timersRef.current.delete(id)
+    }
+    
     setToasts(prev => prev.filter(toast => toast.id !== id))
   }
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      timersRef.current.forEach(timer => clearTimeout(timer))
+      timersRef.current.clear()
+    }
+  }, [])
 
   return (
     <ToastContext.Provider value={{ showToast, hideToast }}>
@@ -91,17 +108,22 @@ interface ToastItemProps {
 }
 
 function ToastItem({ toast, onHide }: ToastItemProps) {
-  const [isVisible, setIsVisible] = useState(false)
-
-  useEffect(() => {
-    // Trigger animation
-    setTimeout(() => setIsVisible(true), 10)
-  }, [])
+  const [isVisible, setIsVisible] = useState(true)
+  const closeTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   const handleClose = () => {
     setIsVisible(false)
-    setTimeout(() => onHide(toast.id), 300)
+    closeTimerRef.current = setTimeout(() => onHide(toast.id), 300)
   }
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) {
+        clearTimeout(closeTimerRef.current)
+      }
+    }
+  }, [])
 
   const getToastStyles = (type: ToastType) => {
     const baseStyles = {

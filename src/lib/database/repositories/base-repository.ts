@@ -1,7 +1,7 @@
 // Base repository pattern implementation
 // Provides common database operations and query optimization
 
-import { supabase } from '../../supabase';
+import { supabase } from '../../supabaseClient';
 import { DatabaseErrorHandler, DatabaseOperation } from '../error-handler';
 import { QueryOptions } from '../../../types/database';
 

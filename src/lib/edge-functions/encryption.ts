@@ -1,7 +1,7 @@
 // Encryption utilities for Supabase Edge Functions
 // Provides client-side helpers for API key encryption/decryption
 
-import { supabase } from '../supabase';
+import { supabase } from '../supabaseClient';
 
 /**
  * Client-side encryption service for API keys

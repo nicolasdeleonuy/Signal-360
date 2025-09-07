@@ -3,7 +3,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { AnalysisService } from '../analysis-service';
-import { supabase } from '../../supabase';
+import { supabase } from '../../supabaseClient';
 import { 
   Analysis, 
   CreateAnalysisInput, 

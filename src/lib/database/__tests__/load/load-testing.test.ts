@@ -7,7 +7,7 @@ import { ProfileRepository } from '../../repositories/profile-repository';
 import { AnalysisRepository } from '../../repositories/analysis-repository';
 import { QueryOptimizer, QueryMetrics } from '../../query-optimizer';
 import { ConnectionManager } from '../../connection-manager';
-import { supabase } from '../../../supabase';
+import { supabase } from '../../../supabaseClient';
 
 // Mock Supabase for load testing
 vi.mock('../../../supabase', () => ({

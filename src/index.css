@@ -48,6 +48,29 @@
     @apply text-slate-500 mb-8 text-center max-w-lg mx-auto;
   }
 
+  /* Analysis Progress */
+  .analysis-progress {
+    @apply flex flex-col items-center space-y-4;
+  }
+  .progress-info {
+    @apply text-center space-y-2;
+  }
+  .progress-bar {
+    @apply w-64 h-2 bg-slate-200 rounded-full overflow-hidden;
+  }
+  .progress-fill {
+    @apply h-full bg-blue-600 transition-all duration-500 ease-out;
+  }
+  .progress-text {
+    @apply text-sm font-medium text-slate-700;
+  }
+  .job-id {
+    @apply text-xs text-slate-500 font-mono;
+  }
+  .cancel-button {
+    @apply mt-4 px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 border border-slate-300 rounded-md hover:bg-slate-200 transition-colors;
+  }
+
   /* Placeholder de Síntesis */
   .synthesis-progress-placeholder {
     @apply flex flex-col items-center justify-center space-y-4 text-slate-600;
@@ -171,5 +194,91 @@
   /* Screen Reader Only */
   .sr-only {
     @apply absolute w-px h-px p-0 -m-px overflow-hidden whitespace-nowrap border-0;
+  }
+
+  /* Ticker Search Component Styles */
+  .ticker-search-container {
+    @apply relative;
+  }
+
+  .ticker-search-input-wrapper {
+    @apply relative;
+  }
+
+  .ticker-search-input {
+    @apply font-medium tracking-wide;
+  }
+
+  .ticker-search-input:focus {
+    @apply shadow-lg;
+  }
+
+  .ticker-search-loading {
+    @apply pointer-events-none;
+  }
+
+  .ticker-search-error {
+    @apply duration-200;
+  }
+
+  .ticker-suggestions-dropdown {
+    @apply duration-200 border-t-0;
+  }
+
+  .ticker-suggestion {
+    @apply select-none;
+  }
+
+  .ticker-suggestion:first-child {
+    @apply rounded-t-lg sm:rounded-t-xl;
+  }
+
+  .ticker-suggestion:last-child {
+    @apply rounded-b-lg sm:rounded-b-xl;
+  }
+
+  .ticker-no-results {
+    @apply duration-200;
+  }
+
+  /* Mobile-specific enhancements */
+  @media (max-width: 640px) {
+    .ticker-search-container {
+      @apply px-2;
+    }
+    
+    .ticker-suggestions-dropdown {
+      @apply mx-2 left-0 right-0;
+    }
+    
+    .ticker-search-error {
+      @apply mx-2 left-0 right-0;
+    }
+    
+    .ticker-no-results {
+      @apply mx-2 left-0 right-0;
+    }
+  }
+
+  /* Tablet and desktop hover states */
+  @media (min-width: 768px) {
+    .ticker-suggestion:hover {
+      @apply transform scale-[1.01] shadow-sm;
+    }
+    
+    .ticker-search-input:hover {
+      @apply shadow-md;
+    }
+  }
+
+  /* Desktop-specific enhancements */
+  @media (min-width: 1024px) {
+    .ticker-search-container {
+      @apply max-w-2xl;
+    }
+    
+    .ticker-suggestions-dropdown {
+      @apply shadow-2xl;
+    }
   }
 }

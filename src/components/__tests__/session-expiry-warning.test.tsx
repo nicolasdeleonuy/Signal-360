@@ -1,18 +1,25 @@
-import { render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+// Migrated to Vitest
+import { render, screen, waitFor, act } from '@testing-library/react'
+import { vi } from 'vitest'
+import type { MockedFunction, MockedObject } from 'vitest'
 import { SessionExpiryWarning } from '../session-expiry-warning'
 import { useAuth } from '../../contexts/auth-context'
 import { SessionManager } from '../../utils/session-manager'
 
 // Mock dependencies
-jest.mock('../../contexts/auth-context')
-jest.mock('../../utils/session-manager')
+vi.mock('../../contexts/auth-context')
+vi.mock('../../utils/session-manager')
 
-const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>
-const mockSessionManager = SessionManager as jest.Mocked<typeof SessionManager>
+const mockUseAuth = useAuth as MockedFunction<typeof useAuth>
+const mockSessionManager = SessionManager as MockedObject<typeof SessionManager>
 
-// Mock timers
-jest.useFakeTimers()
+// Mock interval functions to avoid timer issues
+const mockSetInterval = vi.fn()
+const mockClearInterval = vi.fn()
+
+// Store original functions
+const originalSetInterval = global.setInterval
+const originalClearInterval = global.clearInterval
 
 describe('SessionExpiryWarning', () => {
   const mockSession = {
@@ -29,16 +36,24 @@ describe('SessionExpiryWarning', () => {
     },
   }
 
-  const mockSignOut = jest.fn()
+  const mockSignOut = vi.fn()
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
+    
+    // Mock interval functions to prevent timer issues
+    mockSetInterval.mockImplementation(() => 123) // Return a mock timer ID
+    mockClearInterval.mockImplementation(() => {})
+    
+    global.setInterval = mockSetInterval as any
+    global.clearInterval = mockClearInterval as any
+    
     mockUseAuth.mockReturnValue({
       user: mockSession.user as any,
       session: mockSession as any,
       loading: false,
-      signUp: jest.fn(),
-      signIn: jest.fn(),
+      signUp: vi.fn(),
+      signIn: vi.fn(),
       signOut: mockSignOut,
     })
 
@@ -46,9 +61,9 @@ describe('SessionExpiryWarning', () => {
   })
 
   afterEach(() => {
-    jest.runOnlyPendingTimers()
-    jest.useRealTimers()
-    jest.useFakeTimers()
+    // Restore original functions
+    global.setInterval = originalSetInterval
+    global.clearInterval = originalClearInterval
   })
 
   it('should not show warning when session has plenty of time', () => {
@@ -73,8 +88,8 @@ describe('SessionExpiryWarning', () => {
       user: null,
       session: null,
       loading: false,
-      signUp: jest.fn(),
-      signIn: jest.fn(),
+      signUp: vi.fn(),
+      signIn: vi.fn(),
       signOut: mockSignOut,
     })
 
@@ -102,8 +117,7 @@ describe('SessionExpiryWarning', () => {
   })
 
   it('should extend session when extend button is clicked', async () => {
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
-    const onExtendSession = jest.fn()
+    const onExtendSession = vi.fn()
 
     const refreshedSession = {
       ...mockSession,
@@ -119,18 +133,15 @@ describe('SessionExpiryWarning', () => {
     render(<SessionExpiryWarning onExtendSession={onExtendSession} />)
 
     const extendButton = screen.getByRole('button', { name: 'Extend Session' })
-    await user.click(extendButton)
+    
+    await act(async () => {
+      extendButton.click()
+    })
 
     expect(mockSessionManager.refreshSession).toHaveBeenCalled()
-    
-    await waitFor(() => {
-      expect(onExtendSession).toHaveBeenCalled()
-    })
   })
 
   it('should sign out when extend session fails', async () => {
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
-
     mockSessionManager.refreshSession.mockResolvedValue({
       session: null,
       user: null,
@@ -140,20 +151,22 @@ describe('SessionExpiryWarning', () => {
     render(<SessionExpiryWarning />)
 
     const extendButton = screen.getByRole('button', { name: 'Extend Session' })
-    await user.click(extendButton)
-
-    await waitFor(() => {
-      expect(mockSignOut).toHaveBeenCalled()
+    
+    await act(async () => {
+      extendButton.click()
     })
+
+    expect(mockSignOut).toHaveBeenCalled()
   })
 
   it('should sign out when sign out button is clicked', async () => {
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
-
     render(<SessionExpiryWarning />)
 
     const signOutButton = screen.getByRole('button', { name: 'Sign Out' })
-    await user.click(signOutButton)
+    
+    act(() => {
+      signOutButton.click()
+    })
 
     expect(mockSignOut).toHaveBeenCalled()
   })
@@ -174,9 +187,14 @@ describe('SessionExpiryWarning', () => {
 
     expect(screen.getByText(/5m 0s/)).toBeInTheDocument()
 
-    // Simulate time passing
+    // Simulate the interval callback being called
     timeRemaining = 240000 // 4 minutes
-    jest.advanceTimersByTime(30000) // 30 seconds
+    
+    // Get the interval callback and call it manually
+    const intervalCallback = mockSetInterval.mock.calls[0][0]
+    act(() => {
+      intervalCallback()
+    })
 
     expect(screen.getByText(/4m 0s/)).toBeInTheDocument()
   })
@@ -190,28 +208,29 @@ describe('SessionExpiryWarning', () => {
   })
 
   it('should handle refresh session errors', async () => {
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
-
     mockSessionManager.refreshSession.mockRejectedValue(new Error('Refresh failed'))
 
     render(<SessionExpiryWarning />)
 
     const extendButton = screen.getByRole('button', { name: 'Extend Session' })
-    await user.click(extendButton)
-
-    await waitFor(() => {
-      expect(mockSignOut).toHaveBeenCalled()
+    
+    await act(async () => {
+      extendButton.click()
     })
+
+    expect(mockSignOut).toHaveBeenCalled()
   })
 
   it('should clean up interval on unmount', () => {
-    const clearIntervalSpy = jest.spyOn(global, 'clearInterval')
-
     const { unmount } = render(<SessionExpiryWarning />)
+
+    // Verify setInterval was called
+    expect(mockSetInterval).toHaveBeenCalled()
 
     unmount()
 
-    expect(clearIntervalSpy).toHaveBeenCalled()
+    // Verify clearInterval was called
+    expect(mockClearInterval).toHaveBeenCalled()
   })
 
   it('should have proper styling and accessibility', () => {

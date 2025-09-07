@@ -1,7 +1,7 @@
 // Secure query builder with SQL injection prevention
 // Provides parameterized queries and safe query construction
 
-import { supabase } from '../../supabase';
+import { supabase } from '../../supabaseClient';
 import { DatabaseErrorHandler } from '../error-handler';
 import { DatabaseError } from '../../../types/database';
 

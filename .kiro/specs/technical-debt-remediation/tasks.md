@@ -1,7 +1,7 @@
 # Implementation Plan
 
 - [x] 1. Configure TypeScript and testing foundation
-  - Update tsconfig.json with missing compiler options for Jest/Vitest compatibility
+  - Update tsconfig.json with missing compiler options for Vitest compatibility
   - Add Vite environment variable type definitions
   - Install missing type dependencies if needed
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.1, 2.2_
@@ -39,11 +39,11 @@
   - Address other unused variable warnings
   - _Requirements: 3.1, 3.2, 3.3, 4.4_
 
-- [ ] 7. Fix Jest mock type issues in test files
-  - Replace jest.MockedFunction with proper Vitest types
-  - Fix jest.Mocked usage in session-manager.test.ts
-  - Ensure all Jest namespace usage is compatible with Vitest globals
-  - Update mock function type assertions
+- [x] 7. Fix Vitest mock type issues in test files (Migration Complete)
+  - Replaced MockedFunction with proper Vitest MockedFunction types
+  - Fixed Mocked usage by migrating to vi.Mocked in test files
+  - Migrated all testing framework namespace usage to Vitest equivalents (vi.*)
+  - Updated mock function type assertions to use Vitest syntax
   - _Requirements: 2.3, 2.4, 3.1, 3.2, 3.3_
 
 - [ ] 8. Fix callback function parameter types

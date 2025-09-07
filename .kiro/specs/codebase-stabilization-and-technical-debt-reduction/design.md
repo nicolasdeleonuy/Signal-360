@@ -49,13 +49,15 @@ The design follows a phased approach:
 Create proper TypeScript interfaces for mock objects used in tests:
 
 ```typescript
+import { MockedFunction } from 'vitest'
+
 interface MockSupabaseAuth {
-  getSession: jest.MockedFunction<() => Promise<AuthResponse>>;
-  onAuthStateChange: jest.MockedFunction<(callback: AuthCallback) => Subscription>;
-  signUp: jest.MockedFunction<(credentials: SignUpCredentials) => Promise<AuthResponse>>;
-  signInWithPassword: jest.MockedFunction<(credentials: SignInCredentials) => Promise<AuthResponse>>;
-  signOut: jest.MockedFunction<() => Promise<{ error: AuthError | null }>>;
-  refreshSession: jest.MockedFunction<(session?: RefreshSession) => Promise<AuthResponse>>;
+  getSession: MockedFunction<() => Promise<AuthResponse>>;
+  onAuthStateChange: MockedFunction<(callback: AuthCallback) => Subscription>;
+  signUp: MockedFunction<(credentials: SignUpCredentials) => Promise<AuthResponse>>;
+  signInWithPassword: MockedFunction<(credentials: SignInCredentials) => Promise<AuthResponse>>;
+  signOut: MockedFunction<() => Promise<{ error: AuthError | null }>>;
+  refreshSession: MockedFunction<(session?: RefreshSession) => Promise<AuthResponse>>;
 }
 
 type AuthCallback = (event: AuthChangeEvent, session: Session | null) => void | Promise<void>;
@@ -140,7 +142,7 @@ resolveSignIn = resolve
 
 ### Mock Object Error Handling
 
-1. **Type-Safe Mocks**: Use proper Jest mock types with TypeScript generics
+1. **Type-Safe Mocks**: Use proper Vitest mock types with TypeScript generics
 2. **Property Existence**: Ensure all accessed properties exist on mock objects
 3. **Method Signatures**: Match original method signatures in mock implementations
 

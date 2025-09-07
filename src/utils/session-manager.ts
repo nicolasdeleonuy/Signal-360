@@ -1,5 +1,5 @@
 import { Session, User } from '@supabase/supabase-js'
-import { supabase } from '../lib/supabase'
+import { supabase } from '../lib/supabaseClient'
 
 export interface SessionData {
   session: Session | null

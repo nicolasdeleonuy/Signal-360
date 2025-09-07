@@ -11,3 +11,7 @@ export { SessionExpiryWarning, default as SessionExpiryWarningDefault } from './
 // Chart Components
 export { default as AnalysisChart } from './charts/AnalysisChart'
 export type { AnalysisChartProps, ChartDataPoint, ChartColorScheme } from './charts/AnalysisChart'
+
+// Search Components
+export { TickerSearch, default as TickerSearchDefault } from './search/TickerSearch'
+export type { TickerSearchProps, TickerSuggestion } from './search/TickerSearch'

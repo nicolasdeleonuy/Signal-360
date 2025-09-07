@@ -1,14 +1,13 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/auth-context';
 import { useSignalAnalysis } from '../hooks/useSignalAnalysis';
-import { DashboardState, InvestmentGoalType, AnalysisProgress, InvestmentGoal, AnalysisResult } from '../types/dashboard';
-import { TickerInput } from '../components/TickerInput';
-import AnalysisProgressComponent from '../components/AnalysisProgress';
+import { DashboardState, InvestmentGoal, AnalysisResult } from '../types/dashboard';
+import { TickerSearch } from '../components/search/TickerSearch';
 import GoalSelection from '../components/GoalSelection';
 import { ResultsView } from '../components/ResultsView';
+import { useErrorHandler } from '../hooks/useErrorHandler';
 
-const initialDashboardState: DashboardState = {
-  currentStep: 'input',
+const initialDashboardState: Omit<DashboardState, 'currentStep'> = {
   tickerSymbol: '',
   analysisId: null,
   analysisProgress: null,
@@ -21,187 +20,310 @@ const initialDashboardState: DashboardState = {
 
 export function DashboardPage() {
   const { user } = useAuth();
-  const { data: analysisData, error: analysisError, isLoading: analysisLoading, runAnalysis } = useSignalAnalysis();
-  const [dashboardState, setDashboardState] = useState<DashboardState>(initialDashboardState);
+  const { 
+    data: analysisData, 
+    error: analysisError, 
+    isLoading: analysisLoading, 
+    progress: analysisProgress,
+    jobId,
+    runAnalysis,
+    cancelAnalysis
+  } = useSignalAnalysis();
+  const [dashboardState, setDashboardState] = useState(initialDashboardState);
 
-  const createMockProgress = useCallback((overallProgress: number): AnalysisProgress => {
-    const now = new Date();
-    const completion = new Date(now.getTime() + 5 * 60 * 1000);
-    return {
-      overall_progress: overallProgress,
-      current_stage: overallProgress < 25 ? 'fundamental' : overallProgress < 50 ? 'technical' : overallProgress < 75 ? 'esg' : 'synthesis',
-      estimated_completion: completion.toISOString(),
-      stages: {
-        fundamental: { status: overallProgress >= 25 ? 'completed' : 'running', progress: Math.min(100, Math.max(0, (overallProgress) * 4)), message: 'Analyzing financials...' },
-        technical: { status: overallProgress >= 50 ? 'completed' : overallProgress >= 25 ? 'running' : 'pending', progress: Math.min(100, Math.max(0, (overallProgress - 25) * 4)), message: 'Processing trends...' },
-        esg: { status: overallProgress >= 75 ? 'completed' : overallProgress >= 50 ? 'running' : 'pending', progress: Math.min(100, Math.max(0, (overallProgress - 50) * 4)), message: 'Evaluating ESG factors...' },
-        synthesis: { status: overallProgress >= 100 ? 'completed' : overallProgress >= 75 ? 'running' : 'pending', progress: Math.min(100, Math.max(0, (overallProgress - 75) * 4)), message: 'Combining results...' }
-      }
-    };
-  }, []);
+  const {
+    error: internalError,
+    handleError,
+    clearError,
+    canRetry,
+    retryLastOperation
+  } = useErrorHandler({
+    maxRetries: 3,
+    baseRetryDelay: 2000,
+    onError: (error) => {
+      console.error('Dashboard error:', error);
+    },
+    onRecovery: () => {
+      console.log('Dashboard error recovered');
+    }
+  });
+
+  const isMountedRef = useRef(true);
 
   const handleTickerSubmit = useCallback(async (ticker: string) => {
-    // Clear previous state and set to analysis step
-    setDashboardState(prev => ({ 
-      ...prev, 
-      tickerSymbol: ticker, 
-      currentStep: 'analysis', 
-      loading: false, // We'll use analysisLoading from the hook
-      error: null, 
-      analysisProgress: createMockProgress(0) 
-    }));
-    
-    // Trigger the real analysis using the hook
-    await runAnalysis(ticker);
-  }, [createMockProgress, runAnalysis]);
+    try {
+      clearError();
+      setDashboardState({
+        ...initialDashboardState,
+        tickerSymbol: ticker,
+      });
+      await runAnalysis(ticker);
+    } catch (error) {
+      if (isMountedRef.current) {
+        handleError(error, {
+          source: 'DashboardPage.handleTickerSubmit',
+          ticker,
+          operation: 'analysis'
+        });
+      }
+    }
+  }, [runAnalysis, clearError, handleError]);
+
+  const handleTickerSelection = useCallback((ticker: string, _companyName: string) => {
+    // Trigger existing analysis flow with the selected ticker
+    handleTickerSubmit(ticker);
+  }, [handleTickerSubmit]);
 
   const handleCancelAnalysis = useCallback(() => {
-    setDashboardState(prev => ({ ...prev, currentStep: 'input', loading: false, analysisProgress: null, error: null }));
-    // Note: The useSignalAnalysis hook doesn't expose a cancel function, 
-    // but the state will be reset when a new analysis is started
-  }, []);
+    // Cancel the analysis and reset dashboard state
+    cancelAnalysis();
+    setDashboardState(initialDashboardState);
+  }, [cancelAnalysis]);
 
   const handleGoalSelection = useCallback((goal: InvestmentGoal) => {
-    setDashboardState(prev => ({ ...prev, goalSelection: goal.type, tradingTimeframe: goal.timeframe || null, currentStep: 'synthesis', loading: true }));
-  }, []);
+    if (!analysisData) return;
 
-  const createMockResults = useCallback((goalType: InvestmentGoalType): AnalysisResult => {
-    const isInvestment = goalType === 'investment';
-    return {
-      synthesisScore: isInvestment ? 78 : 65,
-      recommendation: isInvestment ? 'BUY' : 'HOLD',
-      convergenceFactors: isInvestment ? ['Strong revenue growth', 'Improving profit margins', 'Solid balance sheet'] : ['Recent price breakout', 'High trading volume', 'Positive quarterly earnings'],
-      divergenceFactors: isInvestment ? ['High valuation multiples', 'Potential regulatory headwinds', 'Increased competition'] : ['Overbought RSI conditions', 'Potential profit-taking pressure', 'Broader market volatility']
+    let synthesisScore = 50;
+    const convergenceFactors: string[] = [];
+    const divergenceFactors: string[] = [];
+
+    if (analysisData.data?.fundamental) {
+      const fundamental = analysisData.data.fundamental;
+      if ((fundamental as any).growthMetrics?.revenueGrowth > 0.10) {
+        synthesisScore += 10;
+        convergenceFactors.push("Strong revenue growth (> 10%)");
+      }
+      if ((fundamental as any).financialRatios?.debtToEquity < 0.5) {
+        synthesisScore += 10;
+        convergenceFactors.push("Healthy debt-to-equity ratio (< 0.5)");
+      }
+      if ((fundamental as any).financialRatios?.peRatio > 30) {
+        synthesisScore -= 10;
+        divergenceFactors.push("High valuation (P/E Ratio > 30)");
+      }
+    }
+    if (analysisData.data?.technical) {
+      const technical = analysisData.data.technical;
+      if ((technical as any).trendIndicators?.sma50 > (technical as any).trendIndicators?.sma200) {
+        synthesisScore += 10;
+        convergenceFactors.push("Positive long-term trend (50-day SMA > 200-day SMA)");
+      }
+      if ((technical as any).momentumIndicators?.rsi > 70) {
+        synthesisScore -= 10;
+        divergenceFactors.push("Asset may be overbought (RSI > 70)");
+      }
+      if ((technical as any).momentumIndicators?.rsi < 30) {
+        synthesisScore += 10;
+        convergenceFactors.push("Asset may be oversold (RSI < 30)");
+      }
+    }
+    if (analysisData.data?.esg) {
+      const esg = analysisData.data.esg;
+      if ((esg as any).overallESGScore > 70) {
+        synthesisScore += 10;
+        convergenceFactors.push("Strong ESG rating (> 70)");
+      }
+    }
+    if (analysisData.partial && analysisData.failedAnalyses) {
+      analysisData.failedAnalyses.forEach(failed => {
+        synthesisScore -= 5;
+        divergenceFactors.push(`${failed} analysis failed`);
+      });
+    }
+
+    let recommendation: 'BUY' | 'SELL' | 'HOLD' = 'HOLD';
+    if (synthesisScore >= 70) recommendation = 'BUY';
+    else if (synthesisScore < 40) recommendation = 'SELL';
+
+    const results: AnalysisResult = {
+      synthesisScore,
+      recommendation,
+      convergenceFactors,
+      divergenceFactors
+    };
+
+    setDashboardState(prev => ({
+      ...prev,
+      goalSelection: goal.type,
+      tradingTimeframe: goal.timeframe || null,
+      results
+    }));
+  }, [analysisData]);
+
+  const handleNewAnalysis = useCallback(() => {
+    // `handleCancelAnalysis` ya tiene la lógica correcta para resetear.
+    handleCancelAnalysis();
+  }, [handleCancelAnalysis]);
+
+  useEffect(() => {
+    if (analysisError && isMountedRef.current) {
+      handleError(analysisError, {
+        source: 'DashboardPage.analysisEffect',
+        ticker: dashboardState.tickerSymbol,
+        operation: 'analysis'
+      });
+    }
+  }, [analysisError, dashboardState.tickerSymbol]);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      clearError();
     };
   }, []);
 
-  const handleNewAnalysis = useCallback(() => {
-    setDashboardState(initialDashboardState);
-    // The useSignalAnalysis hook state will be reset when a new analysis is started
-  }, []);
-
-  useEffect(() => {
-    if (dashboardState.currentStep === 'analysis' && dashboardState.analysisProgress) {
-      const interval = setInterval(() => {
-        setDashboardState(prev => {
-          if (prev.currentStep !== 'analysis' || !prev.analysisProgress) return prev;
-          const newProgress = Math.min(100, prev.analysisProgress.overall_progress + Math.random() * 15);
-          if (newProgress >= 100) {
-            clearInterval(interval);
-            return { ...prev, currentStep: 'goal-selection', loading: false, analysisProgress: createMockProgress(100) };
-          }
-          return { ...prev, analysisProgress: createMockProgress(newProgress) };
-        });
-      }, 1500);
-      return () => clearInterval(interval);
+  const handleRetryAnalysis = useCallback(async () => {
+    if (dashboardState.tickerSymbol) {
+      await handleTickerSubmit(dashboardState.tickerSymbol);
+    } else if (canRetry) {
+      retryLastOperation();
     }
-  }, [dashboardState.currentStep, dashboardState.analysisProgress, createMockProgress]);
+  }, [dashboardState.tickerSymbol, handleTickerSubmit, canRetry, retryLastOperation]);
 
-  useEffect(() => {
-    if (dashboardState.currentStep === 'synthesis' && dashboardState.loading) {
-      const timeout = setTimeout(() => {
-        setDashboardState(prev => ({ ...prev, currentStep: 'results', loading: false, results: createMockResults(prev.goalSelection || 'investment') }));
-      }, 2500);
-      return () => clearTimeout(timeout);
-    }
-  }, [dashboardState.currentStep, dashboardState.loading, createMockResults]);
-
-  // Handle analysis completion and errors from the useSignalAnalysis hook
-  useEffect(() => {
-    if (dashboardState.currentStep === 'analysis') {
-      if (analysisError) {
-        // Show error and allow user to retry
-        setDashboardState(prev => ({ 
-          ...prev, 
-          error: { 
-            type: 'api' as const,
-            message: analysisError,
-            recoverable: true
-          }, 
-          loading: false,
-          currentStep: 'input' // Return to input step for retry
-        }));
-      } else if (analysisData && !analysisLoading) {
-        // Analysis completed successfully, move to goal selection
-        setDashboardState(prev => ({ 
-          ...prev, 
-          currentStep: 'goal-selection', 
-          loading: false, 
-          analysisProgress: createMockProgress(100),
-          error: null
-        }));
-      }
-    }
-  }, [analysisData, analysisError, analysisLoading, dashboardState.currentStep, createMockProgress]);
+  // CORRECCIÓN 1: Lógica de Estado Derivado Refinada.
+  // La ausencia de un `tickerSymbol` ahora tiene la máxima prioridad
+  // para asegurar que el reinicio siempre lleve a la pantalla de 'input'.
+  const getCurrentStep = () => {
+    const { tickerSymbol, results, goalSelection } = dashboardState;
+    if (!tickerSymbol) return 'input';
+    if (results) return 'results';
+    if (goalSelection) return 'results'; // Si hay objetivo, vamos a los resultados
+    if (analysisData) return 'goal-selection';
+    if (analysisLoading) return 'analysis';
+    return 'input'; // Fallback seguro
+  };
+  const currentStep = getCurrentStep();
 
   const renderStepContent = () => {
-    switch (dashboardState.currentStep) {
+
+    switch (currentStep) {
       case 'input':
         return (
           <div className="step-content-card">
             <h2>Enter Ticker Symbol</h2>
             <p>Start your comprehensive financial analysis by entering a stock ticker symbol.</p>
-            <TickerInput onSubmit={handleTickerSubmit} loading={analysisLoading} error={dashboardState.error?.message || analysisError} placeholder="Enter ticker (e.g., AAPL)" autoFocus={true} />
+            <TickerSearch
+              onTickerSelect={handleTickerSelection}
+              placeholder="Enter ticker (e.g., AAPL)"
+              autoFocus={true}
+              disabled={analysisLoading}
+            />
           </div>
         );
+
       case 'analysis':
         return (
           <div className="step-content-card">
             <h2>Analyzing {dashboardState.tickerSymbol}</h2>
-            <p>Running comprehensive analysis across fundamental, technical, and ESG factors...</p>
-            {analysisLoading && dashboardState.analysisProgress && (
-              <AnalysisProgressComponent progress={dashboardState.analysisProgress} onCancel={handleCancelAnalysis} />
-            )}
-            {!analysisLoading && analysisData && (
-              <div className="analysis-complete">
-                <p>✅ Analysis completed successfully!</p>
-                <p>Ready to proceed to goal selection.</p>
+            <p>Running comprehensive fundamental analysis with real market data...</p>
+            <div className="analysis-loading">
+              <div className="analysis-progress">
+                <div className="spinner" aria-label="Analysis in progress"></div>
+                <div className="progress-info">
+                  {analysisProgress && (
+                    <>
+                      <div className="progress-bar">
+                        <div 
+                          className="progress-fill" 
+                          style={{ width: `${analysisProgress.progress}%` }}
+                        ></div>
+                      </div>
+                      <p className="progress-text">
+                        {analysisProgress.currentPhase} ({analysisProgress.progress}%)
+                      </p>
+                      {jobId && (
+                        <p className="job-id">Job ID: {jobId}</p>
+                      )}
+                    </>
+                  )}
+                  {!analysisProgress && (
+                    <p>Starting analysis...</p>
+                  )}
+                </div>
               </div>
-            )}
-          </div>
-        );
-      case 'goal-selection':
-        return <GoalSelection onGoalSelect={handleGoalSelection} loading={dashboardState.loading} />;
-      case 'synthesis':
-        return (
-          <div className="step-content-card">
-            <h2>Synthesizing Results</h2>
-            <p>Combining analysis results with your investment goal...</p>
-            <div className="synthesis-progress-placeholder">
-              <div className="spinner"></div>
-              <p>Generating final recommendations...</p>
+              <button onClick={cancelAnalysis} className="cancel-button">
+                Cancel Analysis
+              </button>
             </div>
           </div>
         );
+
+      case 'goal-selection':
+        return (
+          <div className="step-content-card">
+            <GoalSelection onGoalSelect={handleGoalSelection} loading={false} />
+            <div className="analysis-summary">
+              <h3>Analysis Summary for {dashboardState.tickerSymbol}</h3>
+              <p>✅ Analysis completed at {new Date().toLocaleTimeString()}</p>
+            </div>
+          </div>
+        );
+
       case 'results':
-        if (!dashboardState.results) return <div className="step-content-card"><h2>Loading Results...</h2></div>;
-        return <ResultsView results={dashboardState.results} onNewAnalysis={handleNewAnalysis} />;
+        if (!dashboardState.results) return null;
+        return (
+          <div className="step-content-card">
+            <ResultsView
+              results={dashboardState.results}
+              onNewAnalysis={handleNewAnalysis}
+              analysisData={analysisData}
+              ticker={dashboardState.tickerSymbol}
+            />
+          </div>
+        );
+
       default:
-        return null;
+        return <div>Error: Unknown step.</div>;
     }
   };
 
+  const primaryError = analysisError || internalError?.userMessage;
+  const hasError = !!primaryError;
+
   return (
-    <div className="dashboard-page">
+    <div className={`dashboard-page ${analysisLoading ? 'loading' : ''} ${hasError ? 'has-error' : ''}`}>
       <div className="dashboard-container">
         <header className="dashboard-header">
           <h1>Signal-360 Analysis Dashboard</h1>
           <div className="user-info">
             <span>Welcome, {user?.email}</span>
+            {analysisLoading && <div className="global-loading-indicator" />}
           </div>
         </header>
 
         <main className="dashboard-main">
           <div className="step-indicator">
-            <div className={`step ${dashboardState.currentStep === 'input' ? 'active' : 'completed'}`}>1. Ticker Input</div>
-            <div className={`step ${dashboardState.currentStep === 'analysis' ? 'active' : ['goal-selection', 'synthesis', 'results'].includes(dashboardState.currentStep) ? 'completed' : ''}`}>2. Analysis</div>
-            <div className={`step ${dashboardState.currentStep === 'goal-selection' ? 'active' : ['synthesis', 'results'].includes(dashboardState.currentStep) ? 'completed' : ''}`}>3. Goal Selection</div>
-            <div className={`step ${dashboardState.currentStep === 'synthesis' ? 'active' : dashboardState.currentStep === 'results' ? 'completed' : ''}`}>4. Synthesis</div>
-            <div className={`step ${dashboardState.currentStep === 'results' ? 'active' : ''}`}>5. Results</div>
+            <div className={`step ${currentStep === 'input' ? 'active' : 'completed'}`}>
+              1. Ticker Input
+            </div>
+            <div className={`step ${currentStep === 'analysis' ? 'active' : ['goal-selection', 'results'].includes(currentStep) ? 'completed' : ''}`}>
+              2. Analysis
+            </div>
+            <div className={`step ${currentStep === 'goal-selection' ? 'active' : currentStep === 'results' ? 'completed' : ''}`}>
+              3. Goal Selection
+            </div>
+            <div className={`step ${currentStep === 'results' ? 'active' : ''}`}>
+              4. Results
+            </div>
           </div>
 
           <div className="dashboard-content">
-            {dashboardState.error && <div className="error-banner"><p>{dashboardState.error.message}</p></div>}
+            {/* CORRECCIÓN 2: Lógica del Banner de Error Refinada.
+                Ahora solo se muestra si hay un error y no estamos en la pantalla de input
+                (donde el error se muestra dentro del componente TickerInput). */}
+            {hasError && currentStep !== 'input' && (
+              <div className="error-banner" role="alert">
+                <div className="error-content">
+                  <span className="error-icon">⚠️</span>
+                  <p>{primaryError}</p>
+                  {canRetry && (
+                    <button onClick={handleRetryAnalysis} className="retry-button-small">
+                      Retry
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
             {renderStepContent()}
           </div>
         </main>

@@ -1,6 +1,8 @@
+// Migrated to Vitest
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
+import { vi } from 'vitest'
 import { ProfilePage } from '../profile'
 import { LoginPage } from '../login'
 import { ProtectedRoute } from '../../components/protected-route'
@@ -8,23 +10,24 @@ import { AuthProvider } from '../../contexts/auth-context'
 import { MockAuthCallback } from '../../types/mocks'
 
 // Mock Supabase
-const mockSignOut = jest.fn()
-const mockSignInWithPassword = jest.fn()
-jest.mock('../../lib/supabase', () => ({
+vi.mock('../../lib/supabase', () => ({
   supabase: {
     auth: {
-      getSession: jest.fn(),
-      onAuthStateChange: jest.fn().mockReturnValue({
-        data: { subscription: { unsubscribe: jest.fn() } },
+      getSession: vi.fn(),
+      onAuthStateChange: vi.fn().mockReturnValue({
+        data: { subscription: { unsubscribe: vi.fn() } },
       }),
-      signUp: jest.fn(),
-      signInWithPassword: mockSignInWithPassword,
-      signOut: mockSignOut,
+      signUp: vi.fn(),
+      signInWithPassword: vi.fn(),
+      signOut: vi.fn(),
     },
   },
 }))
 
-const { supabase } = require('../../lib/supabase')
+// Import after mocking
+import { supabase } from '../../lib/supabaseClient'
+const mockSignOut = vi.mocked(supabase.auth.signOut)
+const mockSignInWithPassword = vi.mocked(supabase.auth.signInWithPassword)
 
 function TestApp({ 
   initialEntries = ['/profile'],
@@ -72,7 +75,7 @@ function TestApp({
 
 describe('ProfilePage with ProtectedRoute', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('should render profile page when user is authenticated', async () => {
@@ -124,7 +127,7 @@ describe('ProfilePage with ProtectedRoute', () => {
     supabase.auth.onAuthStateChange.mockImplementation((callback: MockAuthCallback) => {
       authStateCallback = callback
       return {
-        data: { subscription: { unsubscribe: jest.fn() } },
+        data: { subscription: { unsubscribe: vi.fn() } },
       }
     })
 
@@ -162,7 +165,7 @@ describe('ProfilePage with ProtectedRoute', () => {
     supabase.auth.onAuthStateChange.mockImplementation((callback: MockAuthCallback) => {
       authStateCallback = callback
       return {
-        data: { subscription: { unsubscribe: jest.fn() } },
+        data: { subscription: { unsubscribe: vi.fn() } },
       }
     })
 

@@ -1,13 +1,19 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { TickerSuggestion } from '../types/dashboard';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/supabaseClient';
+import { useErrorHandler } from '../hooks/useErrorHandler';
+import { ErrorDisplay } from './ErrorDisplay';
+import { ClassifiedError } from '../lib/errorHandler';
 
 interface TickerInputProps {
   onSubmit: (ticker: string) => void;
   loading: boolean;
-  error: string | null;
+  error: string | ClassifiedError | null;
   placeholder?: string;
   autoFocus?: boolean;
+  disabled?: boolean;
+  showSuggestions?: boolean;
+  onErrorRetry?: () => void;
 }
 
 interface TickerInputState {
@@ -20,8 +26,8 @@ interface TickerInputState {
   validationError: string | null;
 }
 
-// Ticker validation regex - allows 1-5 uppercase letters, numbers, and common symbols
-const TICKER_REGEX = /^[A-Z0-9.-]{1,5}$/;
+// Ticker validation regex - requires at least one letter, allows letters, numbers, dots, and hyphens (1-5 chars)
+const TICKER_REGEX = /^(?=.*[A-Z])[A-Z0-9.-]{1,5}$/;
 
 // Debounce delay for API calls
 const SUGGESTION_DEBOUNCE_DELAY = 300;
@@ -31,7 +37,10 @@ export function TickerInput({
   loading, 
   error, 
   placeholder = "Enter ticker (e.g., AAPL)",
-  autoFocus = true 
+  autoFocus = true,
+  disabled = false,
+  showSuggestions = true,
+  onErrorRetry
 }: TickerInputProps) {
   const [state, setState] = useState<TickerInputState>({
     value: '',
@@ -46,6 +55,25 @@ export function TickerInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLUListElement>(null);
   const debounceTimeoutRef = useRef<NodeJS.Timeout>();
+
+  // Enhanced error handling
+  const {
+    error: internalError,
+    handleError,
+    clearError,
+    getRecoveryActions,
+    canRetry,
+    retryLastOperation
+  } = useErrorHandler({
+    maxRetries: 2,
+    baseRetryDelay: 1000,
+    onError: (classifiedError) => {
+      console.warn('TickerInput error:', classifiedError);
+    },
+    onRecovery: () => {
+      console.log('TickerInput error recovered');
+    }
+  });
 
   // Sanitize ticker input - remove invalid characters and convert to uppercase
   const sanitizeTicker = useCallback((input: string): string => {
@@ -70,13 +98,13 @@ export function TickerInput({
     }
 
     if (!TICKER_REGEX.test(ticker)) {
-      return { isValid: false, error: 'Invalid ticker format. Use letters, numbers, dots, and hyphens only' };
+      return { isValid: false, error: 'Invalid format. Use 1-5 characters (A-Z, 0-9, ., -) and include at least one letter.' };
     }
 
     return { isValid: true, error: null };
   }, []);
 
-  // Fetch ticker suggestions from generate-ideas API
+  // Fetch ticker suggestions from generate-ideas API with enhanced error handling
   const fetchSuggestions = useCallback(async (query: string): Promise<TickerSuggestion[]> => {
     if (!query || query.length < 1) {
       return [];
@@ -84,6 +112,7 @@ export function TickerInput({
 
     try {
       setState(prev => ({ ...prev, isLoadingSuggestions: true }));
+      clearError(); // Clear any previous errors
 
       // Call generate-ideas API for investment context to get suggestions
       const { data, error } = await supabase.functions.invoke('generate-ideas', {
@@ -93,7 +122,11 @@ export function TickerInput({
       });
 
       if (error) {
-        console.warn('Failed to fetch ticker suggestions:', error);
+        handleError(error, { 
+          source: 'TickerInput.fetchSuggestions',
+          query,
+          operation: 'generate-ideas'
+        });
         return [];
       }
 
@@ -114,12 +147,16 @@ export function TickerInput({
 
       return [];
     } catch (error) {
-      console.warn('Error fetching ticker suggestions:', error);
+      handleError(error, { 
+        source: 'TickerInput.fetchSuggestions',
+        query,
+        operation: 'generate-ideas'
+      });
       return [];
     } finally {
       setState(prev => ({ ...prev, isLoadingSuggestions: false }));
     }
-  }, []);
+  }, [handleError, clearError]);
 
   // Handle input change with real-time validation and suggestions
   const handleInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -158,15 +195,35 @@ export function TickerInput({
     }
   }, [sanitizeTicker, validateTicker, fetchSuggestions]);
 
-  // Handle form submission
+  // Handle form submission with proper validation
   const handleSubmit = useCallback((event: React.FormEvent) => {
     event.preventDefault();
     
-    if (state.isValid && state.value.trim()) {
-      onSubmit(state.value.trim());
-      setState(prev => ({ ...prev, showSuggestions: false }));
+    const trimmedValue = state.value.trim();
+    
+    // Always re-validate at submission time to ensure accuracy
+    const validation = validateTicker(trimmedValue);
+    
+    if (!validation.isValid) {
+      // Update state to show validation error
+      setState(prev => ({
+        ...prev,
+        validationError: validation.error,
+        isValid: false,
+      }));
+      return;
     }
-  }, [state.isValid, state.value, onSubmit]);
+    
+    // Clear any validation errors and proceed with submission
+    setState(prev => ({
+      ...prev,
+      validationError: null,
+      isValid: true,
+      showSuggestions: false,
+    }));
+    
+    onSubmit(trimmedValue);
+  }, [state.value, onSubmit, validateTicker]);
 
   // Handle suggestion selection
   const handleSuggestionSelect = useCallback((suggestion: TickerSuggestion) => {
@@ -265,13 +322,38 @@ export function TickerInput({
     }
   }, [autoFocus]);
 
-  const hasError = error || state.validationError;
+  // Determine the primary error to display
+  const primaryError = error || internalError;
+  const validationError = state.validationError;
+  const hasError = primaryError || validationError;
+  
   const inputId = 'ticker-input';
   const errorId = 'ticker-error';
   const suggestionsId = 'ticker-suggestions';
 
+  // Get recovery actions for the primary error
+  const recoveryActions = primaryError && typeof primaryError === 'object' && 'type' in primaryError 
+    ? getRecoveryActions() 
+    : [];
+
+  // Enhanced retry handler
+  const handleRetry = useCallback(() => {
+    if (onErrorRetry) {
+      onErrorRetry();
+    } else if (canRetry) {
+      retryLastOperation();
+    }
+  }, [onErrorRetry, canRetry, retryLastOperation]);
+
   return (
-    <div className="ticker-input-container">
+    <div className={`ticker-input-container ${loading ? 'ticker-container-loading' : ''}`}>
+      {/* Loading overlay for better visual feedback */}
+      {loading && (
+        <div className="ticker-loading-overlay" aria-hidden="true">
+          <div className="ticker-loading-backdrop"></div>
+        </div>
+      )}
+      
       <form onSubmit={handleSubmit} className="ticker-form">
         <div className="ticker-input-wrapper">
           <label htmlFor={inputId} className="ticker-label">
@@ -289,17 +371,18 @@ export function TickerInput({
               onBlur={handleBlur}
               onFocus={handleFocus}
               placeholder={placeholder}
-              className={`ticker-input ${hasError ? 'ticker-input-error' : ''} ${state.isValid ? 'ticker-input-valid' : ''}`}
-              disabled={loading}
+              className={`ticker-input ${hasError ? 'ticker-input-error' : ''} ${state.isValid ? 'ticker-input-valid' : ''} ${loading ? 'ticker-input-loading' : ''}`}
+              disabled={loading || disabled}
               autoComplete="off"
               autoCapitalize="characters"
               spellCheck={false}
               aria-invalid={!!hasError}
               aria-describedby={hasError ? errorId : undefined}
-              aria-expanded={state.showSuggestions}
+              aria-expanded={showSuggestions && state.showSuggestions}
               aria-haspopup="listbox"
-              aria-owns={state.showSuggestions ? suggestionsId : undefined}
+              aria-owns={showSuggestions && state.showSuggestions ? suggestionsId : undefined}
               role="combobox"
+              aria-label="Enter stock ticker symbol for analysis"
             />
 
             {state.isLoadingSuggestions && (
@@ -309,15 +392,52 @@ export function TickerInput({
             )}
           </div>
 
-          {/* Error message */}
+          {/* Enhanced error display */}
           {hasError && (
-            <div id={errorId} className="ticker-error" role="alert">
-              {error || state.validationError}
+            <div id={errorId} className="ticker-error-container" role="alert">
+              {/* Validation errors (simple display) */}
+              {validationError && (
+                <div className="ticker-validation-error">
+                  <span className="ticker-error-icon">⚠️</span>
+                  <span className="ticker-error-message">{validationError}</span>
+                </div>
+              )}
+              
+              {/* API/System errors (enhanced display) */}
+              {primaryError && typeof primaryError === 'object' && 'type' in primaryError && (
+                <ErrorDisplay
+                  error={primaryError}
+                  actions={recoveryActions.map(action => ({
+                    ...action,
+                    action: action.label === 'Try Again' ? handleRetry : action.action
+                  }))}
+                  compact={true}
+                  onDismiss={clearError}
+                />
+              )}
+              
+              {/* Simple string errors */}
+              {primaryError && typeof primaryError === 'string' && (
+                <div className="ticker-simple-error">
+                  <span className="ticker-error-icon">❌</span>
+                  <span className="ticker-error-message">{primaryError}</span>
+                  {onErrorRetry && (
+                    <button 
+                      type="button"
+                      onClick={handleRetry}
+                      className="ticker-retry-button"
+                      aria-label="Retry operation"
+                    >
+                      Try Again
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
           {/* Suggestions dropdown */}
-          {state.showSuggestions && state.suggestions.length > 0 && (
+          {showSuggestions && state.showSuggestions && state.suggestions.length > 0 && (
             <ul
               ref={suggestionsRef}
               id={suggestionsId}
@@ -347,20 +467,45 @@ export function TickerInput({
 
         <button
           type="submit"
-          className="ticker-submit-button"
-          disabled={!state.isValid || loading}
-          aria-label={`Analyze ${state.value || 'ticker'}`}
+          className={`ticker-submit-button ${loading ? 'ticker-submit-loading' : ''} ${!state.isValid ? 'ticker-submit-disabled' : ''}`}
+          disabled={!state.isValid || loading || disabled}
+          aria-label={loading ? `Analyzing ${state.value}...` : `Analyze ${state.value || 'ticker'}`}
+          aria-describedby={loading ? 'ticker-loading-status' : undefined}
         >
           {loading ? (
             <>
-              <div className="ticker-button-spinner"></div>
+              <div className="ticker-button-spinner" aria-hidden="true"></div>
               <span>Analyzing...</span>
+              <span id="ticker-loading-status" className="sr-only">
+                Analysis in progress for {state.value}
+              </span>
             </>
           ) : (
-            'Analyze'
+            <>
+              <span>Analyze</span>
+              {state.isValid && (
+                <span className="ticker-submit-ticker" aria-hidden="true">
+                  {state.value}
+                </span>
+              )}
+            </>
           )}
         </button>
       </form>
+
+      {/* Screen reader announcements */}
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {loading && `Analyzing ticker ${state.value}...`}
+        {hasError && `Error: ${typeof primaryError === 'string' ? primaryError : primaryError?.userMessage || validationError}`}
+        {state.isValid && !loading && !hasError && state.value && `Valid ticker: ${state.value}`}
+      </div>
+
+      {/* Status announcements for suggestions */}
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {state.isLoadingSuggestions && 'Loading ticker suggestions...'}
+        {showSuggestions && state.showSuggestions && state.suggestions.length > 0 && 
+          `${state.suggestions.length} suggestion${state.suggestions.length > 1 ? 's' : ''} available`}
+      </div>
     </div>
   );
 }

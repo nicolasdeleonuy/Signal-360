@@ -1,195 +1,255 @@
-import { useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { apiService, AnalysisApiResponse, StartAnalysisResponse, AnalysisStatusResponse } from '../lib/apiService';
+import { useAuth } from '../contexts/auth-context';
 
-// Request interface for the signal-360-analysis Edge Function
-export interface AnalysisRequest {
-  ticker: string;
-  context?: 'investment' | 'trading';
-}
+// Re-export types from apiService for backward compatibility
+export type { AnalysisRequest, AnalysisApiResponse as AnalysisResponse } from '../lib/apiService';
 
-// Response interface based on the Edge Function implementation
-export interface AnalysisResponse {
-  success: boolean;
-  message: string;
-  timestamp: string;
-  executionTime: number;
-  ticker: string;
-  context: string;
-  data: {
-    fundamental?: any;
-    technical?: any;
-    esg?: any;
-  };
-  partial?: boolean;
-  failedAnalyses?: string[];
-}
-
-// Error response interface
-export interface AnalysisErrorResponse {
-  success: false;
-  error: {
-    code: string;
-    message: string;
-    details?: Array<{
-      field: string;
-      message: string;
-      code: string;
-    }>;
-  };
+// Analysis progress interface
+export interface AnalysisProgress {
+  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  progress: number;
+  currentPhase: string;
+  jobId: string;
 }
 
 // Hook return interface
 export interface UseSignalAnalysisReturn {
-  data: AnalysisResponse | null;
+  data: AnalysisApiResponse | null;
   error: string | null;
   isLoading: boolean;
+  progress: AnalysisProgress | null;
+  jobId: string | null;
   runAnalysis: (ticker: string, context?: 'investment' | 'trading') => Promise<void>;
+  cancelAnalysis: () => void;
 }
 
 /**
- * Custom hook for managing signal analysis API calls and state
- * Provides state management for data, error, and loading states
+ * Custom hook for managing asynchronous signal analysis with polling
+ * Provides state management for data, error, loading, and progress states
  * Handles authentication and error scenarios with user-friendly messages
  */
 export function useSignalAnalysis(): UseSignalAnalysisReturn {
-  const [data, setData] = useState<AnalysisResponse | null>(null);
+  const [data, setData] = useState<AnalysisApiResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [progress, setProgress] = useState<AnalysisProgress | null>(null);
+  const [jobId, setJobId] = useState<string | null>(null);
+  
+  const { user, session } = useAuth();
+  const pollingIntervalRef = useRef<number | null>(null);
+  const isMountedRef = useRef(true);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    
+    return () => {
+      isMountedRef.current = false;
+      if (pollingIntervalRef.current !== null) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   /**
-   * Converts error codes to user-friendly messages
+   * Stops the polling mechanism
    */
-  const getErrorMessage = (errorCode: string, originalMessage?: string): string => {
-    switch (errorCode) {
-      case 'MISSING_TOKEN':
-      case 'INVALID_TOKEN':
-        return 'Authentication failed. Please log in again.';
-      
-      case 'VALIDATION_ERROR':
-        return 'Invalid ticker symbol. Please enter a valid stock symbol (1-5 letters).';
-      
-      case 'API_KEY_NOT_CONFIGURED':
-        return 'Google API key not configured. Please add your API key in the profile section.';
-      
-      case 'DATABASE_ERROR':
-        return 'Database service temporarily unavailable. Please try again later.';
-      
-      case 'INTERNAL_ERROR':
-        return 'Analysis service temporarily unavailable. Please try again later.';
-      
-      case 'METHOD_NOT_ALLOWED':
-        return 'Invalid request method. Please try again.';
-      
-      default:
-        return originalMessage || 'An unexpected error occurred. Please try again.';
+  const stopPolling = useCallback(() => {
+    if (pollingIntervalRef.current !== null) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
     }
-  };
+  }, []);
 
   /**
-   * Runs the signal analysis for the given ticker
-   * Automatically handles state management and error scenarios
+   * Handles authentication errors by redirecting to login
    */
-  const runAnalysis = async (ticker: string, context: 'investment' | 'trading' = 'investment'): Promise<void> => {
+  const handleAuthError = useCallback(() => {
+    console.warn('Authentication error detected, user needs to log in');
+    // The auth context will handle the redirect
+    setError('Authentication failed. Please log in again.');
+    setIsLoading(false);
+    stopPolling();
+  }, [stopPolling]);
+
+  /**
+   * Polls the analysis status until completion
+   */
+  const pollAnalysisStatus = useCallback(async (currentJobId: string) => {
+    if (!isMountedRef.current) return;
+
+    try {
+      // Get access token from session
+      const accessToken = session?.access_token;
+      const statusResponse = await apiService.getAnalysisStatus(currentJobId, accessToken);
+
+      if (!isMountedRef.current) return;
+
+      if (!statusResponse.success) {
+        // Handle authentication errors
+        if (statusResponse.error?.code === 'AUTHENTICATION_ERROR' || 
+            statusResponse.error?.code === 'INVALID_TOKEN') {
+          handleAuthError();
+          return;
+        }
+
+        setError(statusResponse.error?.message || 'Failed to check analysis status');
+        setIsLoading(false);
+        stopPolling();
+        return;
+      }
+
+      // Update progress
+      const newProgress: AnalysisProgress = {
+        status: statusResponse.status || 'pending',
+        progress: statusResponse.progress || 0,
+        currentPhase: statusResponse.currentPhase || 'Initializing',
+        jobId: currentJobId
+      };
+      setProgress(newProgress);
+
+      // Handle completion
+      if (statusResponse.status === 'completed' && statusResponse.results) {
+        setData({
+          success: true,
+          data: statusResponse.results
+        });
+        setIsLoading(false);
+        stopPolling();
+        console.log('Analysis completed successfully for job:', currentJobId);
+      } else if (statusResponse.status === 'failed') {
+        setError(statusResponse.message || 'Analysis failed');
+        setIsLoading(false);
+        stopPolling();
+      }
+      // Continue polling for 'pending' and 'in_progress' statuses
+
+    } catch (err) {
+      if (!isMountedRef.current) return;
+      
+      console.error('Error polling analysis status:', err);
+      setError('Failed to check analysis progress. Please try again.');
+      setIsLoading(false);
+      stopPolling();
+    }
+  }, [handleAuthError, stopPolling, session?.access_token]);
+
+  /**
+   * Starts the polling mechanism
+   */
+  const startPolling = useCallback((currentJobId: string) => {
+    // Clear any existing polling first
+    if (pollingIntervalRef.current !== null) {
+      clearInterval(pollingIntervalRef.current);
+    }
+    
+    // Poll every 2 seconds
+    pollingIntervalRef.current = setInterval(() => {
+      pollAnalysisStatus(currentJobId);
+    }, 2000) as unknown as number;
+
+    // Also poll immediately
+    pollAnalysisStatus(currentJobId);
+  }, [pollAnalysisStatus]);
+
+  /**
+   * Runs the signal analysis for the given ticker using the asynchronous flow
+   * Automatically handles state management, polling, and error scenarios
+   */
+  const runAnalysis = useCallback(async (ticker: string, context: 'investment' | 'trading' = 'investment'): Promise<void> => {
+    // Check authentication
+    if (!user) {
+      handleAuthError();
+      return;
+    }
+
     // Clear previous state before starting new analysis
     setIsLoading(true);
     setError(null);
     setData(null);
+    setProgress(null);
+    setJobId(null);
+    stopPolling();
 
     try {
-      // Validate ticker input on the frontend
-      if (!ticker || ticker.trim().length === 0) {
-        throw new Error('Ticker symbol is required');
-      }
+      console.log('Starting asynchronous analysis for ticker:', ticker);
 
-      if (ticker.trim().length > 5) {
-        throw new Error('Ticker symbol must be 5 characters or less');
-      }
-
-      if (!/^[A-Za-z]+$/.test(ticker.trim())) {
-        throw new Error('Ticker symbol must contain only letters');
-      }
-
-      // Prepare request payload
-      const requestPayload: AnalysisRequest = {
-        ticker: ticker.trim().toUpperCase(),
-        context
-      };
-
-      console.log('Starting analysis for ticker:', requestPayload.ticker);
-
-      // Call the Supabase Edge Function
-      const { data: responseData, error: supabaseError } = await supabase.functions.invoke(
-        'signal-360-analysis',
-        {
-          body: requestPayload,
-        }
-      );
-
-      // Handle Supabase client errors (network, auth, etc.)
-      if (supabaseError) {
-        console.error('Supabase function invocation error:', supabaseError);
-        
-        // Handle specific Supabase error types
-        if (supabaseError.message?.includes('JWT')) {
-          setError('Authentication failed. Please log in again.');
-        } else if (supabaseError.message?.includes('network') || supabaseError.message?.includes('fetch')) {
-          setError('Network error. Please check your connection and try again.');
-        } else {
-          setError('Analysis service temporarily unavailable. Please try again later.');
-        }
+      // Get access token from session
+      const accessToken = session?.access_token;
+      if (!accessToken) {
+        handleAuthError();
         return;
       }
 
-      // Handle Edge Function error responses
-      if (responseData && !responseData.success) {
-        const errorResponse = responseData as AnalysisErrorResponse;
-        const errorMessage = getErrorMessage(
-          errorResponse.error.code,
-          errorResponse.error.message
-        );
-        setError(errorMessage);
+      console.log('[DEBUG] Frontend is sending USER_ID:', session?.user?.id);
+
+      // Start the analysis with access token
+      const startResponse = await apiService.startAnalysis(ticker, context, accessToken);
+
+      if (!isMountedRef.current) return;
+
+      if (!startResponse.success) {
+        // Handle authentication errors
+        if (startResponse.error?.code === 'AUTHENTICATION_ERROR' || 
+            startResponse.error?.code === 'INVALID_TOKEN') {
+          handleAuthError();
+          return;
+        }
+
+        setError(startResponse.error?.message || 'Failed to start analysis');
+        setIsLoading(false);
         return;
       }
 
-      // Handle successful response
-      if (responseData && responseData.success) {
-        const analysisResponse = responseData as AnalysisResponse;
-        setData(analysisResponse);
-        
-        // Log partial results warning if applicable
-        if (analysisResponse.partial && analysisResponse.failedAnalyses) {
-          console.warn('Analysis completed with partial results. Failed analyses:', analysisResponse.failedAnalyses);
-        }
-        
-        console.log('Analysis completed successfully for ticker:', analysisResponse.ticker);
-      } else {
-        // Handle unexpected response format
-        setError('Received unexpected response format. Please try again.');
+      if (!startResponse.jobId) {
+        setError('Failed to get job ID from analysis service');
+        setIsLoading(false);
+        return;
       }
+
+      // Store job ID and start polling
+      setJobId(startResponse.jobId);
+      setProgress({
+        status: 'pending',
+        progress: 0,
+        currentPhase: 'Starting analysis',
+        jobId: startResponse.jobId
+      });
+
+      console.log('Analysis started with job ID:', startResponse.jobId);
+      startPolling(startResponse.jobId);
 
     } catch (err) {
-      console.error('Error during analysis:', err);
+      if (!isMountedRef.current) return;
       
-      // Handle different error types
-      if (err instanceof Error) {
-        // Handle validation errors from our frontend checks
-        if (err.message.includes('Ticker symbol')) {
-          setError(err.message);
-        } else {
-          setError('An unexpected error occurred. Please try again.');
-        }
-      } else {
-        setError('An unexpected error occurred. Please try again.');
-      }
-    } finally {
+      console.error('Error starting analysis:', err);
+      setError('Failed to start analysis. Please try again.');
       setIsLoading(false);
     }
-  };
+  }, [user, session?.access_token, handleAuthError, stopPolling, startPolling]);
+
+  /**
+   * Cancels the current analysis
+   */
+  const cancelAnalysis = useCallback(() => {
+    console.log('Cancelling analysis');
+    setIsLoading(false);
+    setError(null);
+    setData(null);
+    setProgress(null);
+    setJobId(null);
+    stopPolling();
+  }, [stopPolling]);
 
   return {
     data,
     error,
     isLoading,
+    progress,
+    jobId,
     runAnalysis,
+    cancelAnalysis,
   };
 }

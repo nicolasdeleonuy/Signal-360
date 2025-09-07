@@ -3,7 +3,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ProfileService } from '../profile-service';
-import { supabase } from '../../supabase';
+import { supabase } from '../../supabaseClient';
 import { Profile, CreateProfileInput, UpdateProfileInput } from '../../../types/database';
 
 // Mock Supabase client

@@ -1,5 +1,5 @@
 import { SessionManager } from '../session-manager'
-import { supabase } from '../../lib/supabase'
+import { supabase } from '../../lib/supabaseClient'
 import { MockSupabaseClient } from '../../types/mocks'
 
 // Mock Supabase

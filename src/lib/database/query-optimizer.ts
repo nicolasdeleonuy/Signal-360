@@ -1,7 +1,7 @@
 // Query optimization utilities
 // Provides query optimization, caching, and performance monitoring
 
-import { supabase } from '../supabase';
+import { supabase } from '../supabaseClient';
 import { DatabaseOperation } from './error-handler';
 
 /**

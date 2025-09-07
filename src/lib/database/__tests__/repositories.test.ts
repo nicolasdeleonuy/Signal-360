@@ -6,7 +6,7 @@ import { BaseRepository } from '../repositories/base-repository';
 import { ProfileRepository } from '../repositories/profile-repository';
 import { AnalysisRepository } from '../repositories/analysis-repository';
 import { QueryOptimizer } from '../query-optimizer';
-import { supabase } from '../../supabase';
+import { supabase } from '../../supabaseClient';
 import { Profile, Analysis, CreateAnalysisInput } from '../../../types/database';
 
 // Mock Supabase client

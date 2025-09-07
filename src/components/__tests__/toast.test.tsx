@@ -1,5 +1,6 @@
+// Migrated to Vitest
 import { render, screen, waitFor, act } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { vi } from 'vitest'
 import { ToastProvider, useToast } from '../toast'
 
 // Test component that uses toast
@@ -8,16 +9,19 @@ function TestComponent() {
 
   return (
     <div>
-      <button onClick={() => showToast('success', 'Success message')}>
+      <button onClick={() => showToast('success', 'Success message', 0)}>
         Show Success
       </button>
-      <button onClick={() => showToast('error', 'Error message')}>
+      <button onClick={() => showToast('success', 'Auto-hide message', 5000)}>
+        Show Auto-hide
+      </button>
+      <button onClick={() => showToast('error', 'Error message', 0)}>
         Show Error
       </button>
-      <button onClick={() => showToast('warning', 'Warning message')}>
+      <button onClick={() => showToast('warning', 'Warning message', 0)}>
         Show Warning
       </button>
-      <button onClick={() => showToast('info', 'Info message')}>
+      <button onClick={() => showToast('info', 'Info message', 0)}>
         Show Info
       </button>
       <button onClick={() => showToast('success', 'Persistent message', 0)}>
@@ -29,12 +33,12 @@ function TestComponent() {
 
 describe('Toast System', () => {
   beforeEach(() => {
-    jest.useFakeTimers()
+    vi.useFakeTimers()
   })
 
   afterEach(() => {
-    jest.runOnlyPendingTimers()
-    jest.useRealTimers()
+    vi.runOnlyPendingTimers()
+    vi.useRealTimers()
   })
 
   it('should render toast provider without errors', () => {
@@ -48,7 +52,7 @@ describe('Toast System', () => {
   })
 
   it('should throw error when useToast is used outside provider', () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     expect(() => {
       render(<TestComponent />)
@@ -58,8 +62,6 @@ describe('Toast System', () => {
   })
 
   it('should show success toast', async () => {
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
-
     render(
       <ToastProvider>
         <TestComponent />
@@ -67,15 +69,16 @@ describe('Toast System', () => {
     )
 
     const successButton = screen.getByText('Show Success')
-    await user.click(successButton)
+    
+    act(() => {
+      successButton.click()
+    })
 
     expect(screen.getByText('Success message')).toBeInTheDocument()
     expect(screen.getByText('✅')).toBeInTheDocument()
   })
 
   it('should show error toast', async () => {
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
-
     render(
       <ToastProvider>
         <TestComponent />
@@ -83,15 +86,16 @@ describe('Toast System', () => {
     )
 
     const errorButton = screen.getByText('Show Error')
-    await user.click(errorButton)
+    
+    act(() => {
+      errorButton.click()
+    })
 
     expect(screen.getByText('Error message')).toBeInTheDocument()
     expect(screen.getByText('❌')).toBeInTheDocument()
   })
 
   it('should show warning toast', async () => {
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
-
     render(
       <ToastProvider>
         <TestComponent />
@@ -99,15 +103,16 @@ describe('Toast System', () => {
     )
 
     const warningButton = screen.getByText('Show Warning')
-    await user.click(warningButton)
+    
+    act(() => {
+      warningButton.click()
+    })
 
     expect(screen.getByText('Warning message')).toBeInTheDocument()
     expect(screen.getByText('⚠️')).toBeInTheDocument()
   })
 
   it('should show info toast', async () => {
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
-
     render(
       <ToastProvider>
         <TestComponent />
@@ -115,39 +120,45 @@ describe('Toast System', () => {
     )
 
     const infoButton = screen.getByText('Show Info')
-    await user.click(infoButton)
+    
+    act(() => {
+      infoButton.click()
+    })
 
     expect(screen.getByText('Info message')).toBeInTheDocument()
     expect(screen.getByText('ℹ️')).toBeInTheDocument()
   })
 
   it('should auto-hide toast after duration', async () => {
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
-
     render(
       <ToastProvider>
         <TestComponent />
       </ToastProvider>
     )
 
-    const successButton = screen.getByText('Show Success')
-    await user.click(successButton)
-
-    expect(screen.getByText('Success message')).toBeInTheDocument()
-
-    // Fast-forward time
+    const autoHideButton = screen.getByText('Show Auto-hide')
+    
     act(() => {
-      jest.advanceTimersByTime(5000)
+      autoHideButton.click()
     })
 
-    await waitFor(() => {
-      expect(screen.queryByText('Success message')).not.toBeInTheDocument()
+    // Advance timers to trigger the animation setTimeout
+    act(() => {
+      vi.advanceTimersByTime(20)
     })
+
+    expect(screen.getByText('Auto-hide message')).toBeInTheDocument()
+
+    // Fast-forward time to trigger auto-hide
+    act(() => {
+      vi.advanceTimersByTime(5000)
+    })
+
+    // No need for waitFor with fake timers - the change should be immediate
+    expect(screen.queryByText('Auto-hide message')).not.toBeInTheDocument()
   })
 
   it('should not auto-hide persistent toast', async () => {
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
-
     render(
       <ToastProvider>
         <TestComponent />
@@ -155,13 +166,21 @@ describe('Toast System', () => {
     )
 
     const persistentButton = screen.getByText('Show Persistent')
-    await user.click(persistentButton)
+    
+    act(() => {
+      persistentButton.click()
+    })
+
+    // Advance timers to trigger the animation setTimeout
+    act(() => {
+      vi.advanceTimersByTime(20)
+    })
 
     expect(screen.getByText('Persistent message')).toBeInTheDocument()
 
-    // Fast-forward time
+    // Fast-forward time - persistent toast should not auto-hide
     act(() => {
-      jest.advanceTimersByTime(10000)
+      vi.advanceTimersByTime(10000)
     })
 
     // Should still be visible
@@ -169,8 +188,6 @@ describe('Toast System', () => {
   })
 
   it('should close toast when close button is clicked', async () => {
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
-
     render(
       <ToastProvider>
         <TestComponent />
@@ -178,21 +195,34 @@ describe('Toast System', () => {
     )
 
     const successButton = screen.getByText('Show Success')
-    await user.click(successButton)
+    
+    act(() => {
+      successButton.click()
+    })
+
+    // Advance timers to trigger the animation setTimeout
+    act(() => {
+      vi.advanceTimersByTime(20)
+    })
 
     expect(screen.getByText('Success message')).toBeInTheDocument()
 
     const closeButton = screen.getByText('×')
-    await user.click(closeButton)
-
-    await waitFor(() => {
-      expect(screen.queryByText('Success message')).not.toBeInTheDocument()
+    
+    act(() => {
+      closeButton.click()
     })
+
+    // Advance timers to trigger the close animation setTimeout
+    act(() => {
+      vi.advanceTimersByTime(300)
+    })
+
+    // No need for waitFor with fake timers - the change should be immediate
+    expect(screen.queryByText('Success message')).not.toBeInTheDocument()
   })
 
   it('should close toast when clicked', async () => {
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
-
     render(
       <ToastProvider>
         <TestComponent />
@@ -200,21 +230,33 @@ describe('Toast System', () => {
     )
 
     const successButton = screen.getByText('Show Success')
-    await user.click(successButton)
+    
+    act(() => {
+      successButton.click()
+    })
+
+    // Advance timers to trigger the animation setTimeout
+    act(() => {
+      vi.advanceTimersByTime(20)
+    })
 
     const toast = screen.getByText('Success message').closest('.toast')
     expect(toast).toBeInTheDocument()
 
-    await user.click(toast!)
-
-    await waitFor(() => {
-      expect(screen.queryByText('Success message')).not.toBeInTheDocument()
+    act(() => {
+      toast!.click()
     })
+
+    // Advance timers to trigger the close animation setTimeout
+    act(() => {
+      vi.advanceTimersByTime(300)
+    })
+
+    // No need for waitFor with fake timers - the change should be immediate
+    expect(screen.queryByText('Success message')).not.toBeInTheDocument()
   })
 
   it('should show multiple toasts', async () => {
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
-
     render(
       <ToastProvider>
         <TestComponent />
@@ -224,16 +266,21 @@ describe('Toast System', () => {
     const successButton = screen.getByText('Show Success')
     const errorButton = screen.getByText('Show Error')
 
-    await user.click(successButton)
-    await user.click(errorButton)
+    act(() => {
+      successButton.click()
+      errorButton.click()
+    })
+
+    // Advance timers to trigger the animation setTimeout for both toasts
+    act(() => {
+      vi.advanceTimersByTime(20)
+    })
 
     expect(screen.getByText('Success message')).toBeInTheDocument()
     expect(screen.getByText('Error message')).toBeInTheDocument()
   })
 
   it('should have proper styling for different toast types', async () => {
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
-
     render(
       <ToastProvider>
         <TestComponent />
@@ -242,22 +289,36 @@ describe('Toast System', () => {
 
     // Test success toast styling
     const successButton = screen.getByText('Show Success')
-    await user.click(successButton)
+    
+    act(() => {
+      successButton.click()
+    })
+
+    // Advance timers to trigger the animation setTimeout
+    act(() => {
+      vi.advanceTimersByTime(20)
+    })
 
     const successToast = screen.getByText('Success message').closest('.toast-success')
     expect(successToast).toBeInTheDocument()
 
     // Test error toast styling
     const errorButton = screen.getByText('Show Error')
-    await user.click(errorButton)
+    
+    act(() => {
+      errorButton.click()
+    })
+
+    // Advance timers to trigger the animation setTimeout
+    act(() => {
+      vi.advanceTimersByTime(20)
+    })
 
     const errorToast = screen.getByText('Error message').closest('.toast-error')
     expect(errorToast).toBeInTheDocument()
   })
 
   it('should handle rapid toast creation', async () => {
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
-
     render(
       <ToastProvider>
         <TestComponent />
@@ -267,9 +328,16 @@ describe('Toast System', () => {
     const successButton = screen.getByText('Show Success')
 
     // Create multiple toasts rapidly
-    await user.click(successButton)
-    await user.click(successButton)
-    await user.click(successButton)
+    act(() => {
+      successButton.click()
+      successButton.click()
+      successButton.click()
+    })
+
+    // Advance timers to trigger the animation setTimeout for all toasts
+    act(() => {
+      vi.advanceTimersByTime(20)
+    })
 
     // Should show all toasts
     const toasts = screen.getAllByText('Success message')

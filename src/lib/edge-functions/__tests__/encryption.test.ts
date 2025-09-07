@@ -7,7 +7,7 @@ import {
   DevEncryptionFallback, 
   AdaptiveEncryptionService 
 } from '../encryption';
-import { supabase } from '../../supabase';
+import { supabase } from '../../supabaseClient';
 
 // Mock Supabase client
 vi.mock('../../supabase', () => ({
