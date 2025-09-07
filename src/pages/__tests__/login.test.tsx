@@ -1,18 +1,18 @@
-import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { BrowserRouter, MemoryRouter } from 'react-router-dom'
+import { MemoryRouter } from 'react-router-dom'
 import { LoginPage } from '../login'
 import { useAuth } from '../../contexts/auth-context'
+import { vi } from 'vitest'
 
 // Mock the auth context
-jest.mock('../../contexts/auth-context')
-const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>
+vi.mock('../../contexts/auth-context')
+const mockUseAuth = useAuth as any
 
 // Mock navigate
-const mockNavigate = jest.fn()
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+const mockNavigate = vi.fn()
+vi.mock('react-router-dom', () => ({
+  ...vi.importActual('react-router-dom'),
   useNavigate: () => mockNavigate,
 }))
 
@@ -25,17 +25,17 @@ function renderLoginPage(initialEntries = ['/login']) {
 }
 
 describe('LoginPage', () => {
-  const mockSignIn = jest.fn()
+  const mockSignIn = vi.fn()
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockUseAuth.mockReturnValue({
       user: null,
       session: null,
       loading: false,
-      signUp: jest.fn(),
+      signUp: vi.fn(),
       signIn: mockSignIn,
-      signOut: jest.fn(),
+      signOut: vi.fn(),
     })
   })
 
@@ -142,7 +142,7 @@ describe('LoginPage', () => {
 
   it('should show loading state during submission', async () => {
     const user = userEvent.setup()
-    let resolveSignIn: () => void
+    let resolveSignIn: (value: unknown) => void
     mockSignIn.mockImplementation(() => new Promise(resolve => {
       resolveSignIn = resolve
     }))
@@ -160,7 +160,7 @@ describe('LoginPage', () => {
     expect(submitButton).toBeDisabled()
 
     // Resolve the promise
-    resolveSignIn!()
+    resolveSignIn!({ data: { user: null, session: null }, error: null })
     await waitFor(() => {
       expect(screen.queryByText('Signing In...')).not.toBeInTheDocument()
     })
@@ -178,9 +178,9 @@ describe('LoginPage', () => {
       user: mockUser as any,
       session: { user: mockUser } as any,
       loading: false,
-      signUp: jest.fn(),
+      signUp: vi.fn(),
       signIn: mockSignIn,
-      signOut: jest.fn(),
+      signOut: vi.fn(),
     })
 
     renderLoginPage()
@@ -200,9 +200,9 @@ describe('LoginPage', () => {
       user: mockUser as any,
       session: { user: mockUser } as any,
       loading: false,
-      signUp: jest.fn(),
+      signUp: vi.fn(),
       signIn: mockSignIn,
-      signOut: jest.fn(),
+      signOut: vi.fn(),
     })
 
     // Simulate coming from a protected route
@@ -225,9 +225,9 @@ describe('LoginPage', () => {
       user: null,
       session: null,
       loading: true,
-      signUp: jest.fn(),
+      signUp: vi.fn(),
       signIn: mockSignIn,
-      signOut: jest.fn(),
+      signOut: vi.fn(),
     })
 
     renderLoginPage()
@@ -238,7 +238,7 @@ describe('LoginPage', () => {
 
   it('should disable form inputs during submission', async () => {
     const user = userEvent.setup()
-    let resolveSignIn: () => void
+    let resolveSignIn: (value: unknown) => void
     mockSignIn.mockImplementation(() => new Promise(resolve => {
       resolveSignIn = resolve
     }))
@@ -257,7 +257,7 @@ describe('LoginPage', () => {
     expect(submitButton).toBeDisabled()
 
     // Resolve the promise
-    resolveSignIn!()
+    resolveSignIn!({ data: { user: null, session: null }, error: null })
     await waitFor(() => {
       expect(emailInput).not.toBeDisabled()
     })

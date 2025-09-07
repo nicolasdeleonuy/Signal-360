@@ -1,24 +1,24 @@
-import React from 'react'
 import { render, screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import App from '../App'
 import { SessionManager } from '../utils/session-manager'
+import { vi } from 'vitest'
 
 // Mock Supabase
-const mockSignInWithPassword = jest.fn()
-const mockSignOut = jest.fn()
-const mockRefreshSession = jest.fn()
-const mockGetSession = jest.fn()
+const mockSignInWithPassword = vi.fn()
+const mockSignOut = vi.fn()
+const mockRefreshSession = vi.fn()
+const mockGetSession = vi.fn()
 
-jest.mock('../lib/supabase', () => ({
+vi.mock('../lib/supabase', () => ({
   supabase: {
     auth: {
       getSession: mockGetSession,
-      onAuthStateChange: jest.fn().mockReturnValue({
-        data: { subscription: { unsubscribe: jest.fn() } },
+      onAuthStateChange: vi.fn().mockReturnValue({
+        data: { subscription: { unsubscribe: vi.fn() } },
       }),
-      signUp: jest.fn(),
+      signUp: vi.fn(),
       signInWithPassword: mockSignInWithPassword,
       signOut: mockSignOut,
       refreshSession: mockRefreshSession,
@@ -28,17 +28,17 @@ jest.mock('../lib/supabase', () => ({
 
 // Mock localStorage
 const localStorageMock = {
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-  clear: jest.fn(),
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
 }
 Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
 })
 
 // Mock timers
-jest.useFakeTimers()
+vi.useFakeTimers()
 
 describe('Session Management Integration', () => {
   const mockUser = {
@@ -58,16 +58,16 @@ describe('Session Management Integration', () => {
   })
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     localStorageMock.getItem.mockReturnValue(null)
-    jest.clearAllTimers()
+    vi.clearAllTimers()
   })
 
   afterEach(() => {
     SessionManager.clearRefreshTimer()
-    jest.runOnlyPendingTimers()
-    jest.useRealTimers()
-    jest.useFakeTimers()
+    vi.runOnlyPendingTimers()
+    vi.useRealTimers()
+    vi.useFakeTimers()
   })
 
   it('should restore session from localStorage on app load', async () => {
@@ -124,7 +124,7 @@ describe('Session Management Integration', () => {
   })
 
   it('should extend session when user clicks extend button', async () => {
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
     const mockSession = createMockSession(4) // 4 minutes
     const refreshedSession = createMockSession(60) // 1 hour
 
@@ -180,7 +180,7 @@ describe('Session Management Integration', () => {
 
     // Fast forward time to expire session
     act(() => {
-      jest.advanceTimersByTime(10000) // 10 seconds
+      vi.advanceTimersByTime(10000) // 10 seconds
     })
 
     await waitFor(() => {
@@ -214,7 +214,7 @@ describe('Session Management Integration', () => {
 
     // Fast forward to trigger automatic refresh (5 minutes = refresh threshold)
     act(() => {
-      jest.advanceTimersByTime(5 * 60 * 1000) // 5 minutes
+      vi.advanceTimersByTime(5 * 60 * 1000) // 5 minutes
     })
 
     await waitFor(() => {
@@ -224,7 +224,7 @@ describe('Session Management Integration', () => {
 
   it('should handle session refresh failure', async () => {
     const mockSession = createMockSession(4) // 4 minutes
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime })
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
 
     mockGetSession.mockResolvedValue({
       data: { session: mockSession },

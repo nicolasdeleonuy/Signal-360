@@ -1,28 +1,31 @@
-import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
+import { vi } from 'vitest'
 import { SignUpPage } from '../sign-up'
 import { AuthProvider } from '../../contexts/auth-context'
 
 // Mock Supabase for integration tests
-const mockSignUp = jest.fn()
-jest.mock('../../lib/supabase', () => ({
+vi.mock('../../lib/supabase', () => ({
   supabase: {
     auth: {
-      getSession: jest.fn().mockResolvedValue({
+      getSession: vi.fn().mockResolvedValue({
         data: { session: null },
         error: null,
       }),
-      onAuthStateChange: jest.fn().mockReturnValue({
-        data: { subscription: { unsubscribe: jest.fn() } },
+      onAuthStateChange: vi.fn().mockReturnValue({
+        data: { subscription: { unsubscribe: vi.fn() } },
       }),
-      signUp: mockSignUp,
-      signInWithPassword: jest.fn(),
-      signOut: jest.fn(),
+      signUp: vi.fn(),
+      signInWithPassword: vi.fn(),
+      signOut: vi.fn(),
     },
   },
 }))
+
+// Get the mocked signUp function
+import { supabase } from '../../lib/supabaseClient'
+const mockSignUp = vi.mocked(supabase.auth.signUp)
 
 function TestApp({ initialEntries = ['/sign-up'] }: { initialEntries?: string[] }) {
   return (
@@ -36,7 +39,7 @@ function TestApp({ initialEntries = ['/sign-up'] }: { initialEntries?: string[] 
 
 describe('SignUpPage Integration', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('should integrate with auth context for sign up', async () => {
@@ -105,16 +108,16 @@ describe('SignUpPage Integration', () => {
 
   it('should show loading state during auth initialization', () => {
     // Mock loading state
-    jest.doMock('../../lib/supabase', () => ({
+    vi.doMock('../../lib/supabase', () => ({
       supabase: {
         auth: {
-          getSession: jest.fn().mockImplementation(() => new Promise(() => {})), // Never resolves
-          onAuthStateChange: jest.fn().mockReturnValue({
-            data: { subscription: { unsubscribe: jest.fn() } },
+          getSession: vi.fn().mockImplementation(() => new Promise(() => {})), // Never resolves
+          onAuthStateChange: vi.fn().mockReturnValue({
+            data: { subscription: { unsubscribe: vi.fn() } },
           }),
           signUp: mockSignUp,
-          signInWithPassword: jest.fn(),
-          signOut: jest.fn(),
+          signInWithPassword: vi.fn(),
+          signOut: vi.fn(),
         },
       },
     }))

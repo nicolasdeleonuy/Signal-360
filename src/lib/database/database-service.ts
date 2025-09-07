@@ -1,7 +1,7 @@
 // Centralized database service for Signal-360
 // Combines profile and analysis operations with error handling and transaction management
 
-import { supabase } from '../supabase';
+import { supabase } from '../supabaseClient';
 import { ProfileService } from './profile-service';
 import { AnalysisService } from './analysis-service';
 import { ValidationService } from './validation';
@@ -414,7 +414,7 @@ export class DatabaseService {
       
       return {
         isConnected,
-        url: supabase.supabaseUrl,
+        url: import.meta.env.VITE_SUPABASE_URL || 'unknown',
         timestamp: new Date().toISOString(),
       };
     } catch (error) {

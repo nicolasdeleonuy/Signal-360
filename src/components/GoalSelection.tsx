@@ -21,7 +21,7 @@ const GoalSelection: React.FC<GoalSelectionProps> = ({ onGoalSelect, loading }) 
 
   const handleGoalSelection = (goalType: InvestmentGoalType) => {
     setSelectedGoal(goalType);
-    
+
     if (goalType === 'investment') {
       // For investment, no timeframe needed - submit immediately
       const goal: InvestmentGoal = {
@@ -35,7 +35,7 @@ const GoalSelection: React.FC<GoalSelectionProps> = ({ onGoalSelect, loading }) 
 
   const handleTimeframeSelection = (timeframe: TradingTimeframe) => {
     setSelectedTimeframe(timeframe);
-    
+
     if (selectedGoal === 'trading') {
       const goal: InvestmentGoal = {
         type: 'trading',
@@ -79,7 +79,7 @@ const GoalSelection: React.FC<GoalSelectionProps> = ({ onGoalSelect, loading }) 
           <div className="goal-content">
             <h3>Long-term Investment</h3>
             <p className="goal-description">
-              Focus on fundamental analysis, company financials, and long-term growth potential. 
+              Focus on fundamental analysis, company financials, and long-term growth potential.
               Ideal for building wealth over years.
             </p>
             <div className="goal-features">
@@ -109,7 +109,7 @@ const GoalSelection: React.FC<GoalSelectionProps> = ({ onGoalSelect, loading }) 
           <div className="goal-content">
             <h3>Short-term Trading</h3>
             <p className="goal-description">
-              Emphasize technical analysis, price patterns, and market timing. 
+              Emphasize technical analysis, price patterns, and market timing.
               Perfect for active trading and quick profits.
             </p>
             <div className="goal-features">
@@ -131,7 +131,7 @@ const GoalSelection: React.FC<GoalSelectionProps> = ({ onGoalSelect, loading }) 
           <p className="timeframe-subtitle">
             Choose your preferred trading horizon to optimize the analysis
           </p>
-          
+
           <div className="timeframe-grid">
             {timeframeOptions.map((option) => (
               <div

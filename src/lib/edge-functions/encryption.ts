@@ -1,7 +1,7 @@
 // Encryption utilities for Supabase Edge Functions
 // Provides client-side helpers for API key encryption/decryption
 
-import { supabase } from '../supabase';
+import { supabase } from '../supabaseClient';
 
 /**
  * Client-side encryption service for API keys
@@ -80,7 +80,7 @@ export class EncryptionService {
    */
   static async isServiceAvailable(): Promise<boolean> {
     try {
-      const { error } = await supabase.functions.invoke('encrypt-api-key', {
+      await supabase.functions.invoke('encrypt-api-key', {
         body: { api_key: 'test' }
       });
 

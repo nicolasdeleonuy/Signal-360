@@ -2,9 +2,9 @@
 
 ## Overview
 
-The Backend Analysis Logic for Signal-360 is implemented as a suite of Supabase Edge Functions that provide secure, scalable financial analysis capabilities. The system orchestrates three specialized analysis modules (Fundamental, Technical, ESG) and synthesizes their outputs into actionable investment insights. All processing occurs server-side to ensure security, protect API keys, and maintain consistent performance.
+The Backend Analysis Logic specification defines the implementation of a comprehensive Supabase Edge Function named `signal-360-analysis` that serves as the primary backend service for financial asset analysis. This function replaces frontend mock data with real analysis capabilities by orchestrating three distinct analysis modules (Fundamental, Technical, and ESG), synthesizing results, and returning structured data compatible with existing frontend components.
 
-The architecture follows a microservices pattern with dedicated Edge Functions for different responsibilities, enabling independent scaling and maintenance while maintaining cohesive functionality through shared utilities and standardized interfaces.
+The design follows the established patterns in the Signal-360 codebase, leveraging existing shared utilities for authentication, error handling, security, and database operations while introducing new analysis-specific logic.
 
 ## Architecture
 
@@ -12,94 +12,64 @@ The architecture follows a microservices pattern with dedicated Edge Functions f
 
 ```mermaid
 graph TB
-    subgraph "Frontend (React + TypeScript)"
-        UI[User Interface]
-        AC[Auth Context]
-        API[API Client]
-    end
+    Client[Frontend Client] --> EdgeFunction[signal-360-analysis Edge Function]
+    EdgeFunction --> Auth[Authentication Layer]
+    EdgeFunction --> Validation[Request Validation]
+    EdgeFunction --> APIKey[API Key Retrieval]
+    EdgeFunction --> Orchestrator[Analysis Orchestrator]
     
-    subgraph "Supabase Platform"
-        AUTH[Auth Service]
-        DB[(PostgreSQL Database)]
-        
-        subgraph "Edge Functions"
-            MAIN[analyze-ticker]
-            FUND[fundamental-analysis]
-            TECH[technical-analysis]
-            ESG[esg-analysis]
-            SYNTH[synthesis-engine]
-            IDEAS[generate-ideas]
-            ENCRYPT[encrypt-api-key]
-            DECRYPT[decrypt-api-key]
-        end
-    end
+    Orchestrator --> Fund[Fundamental Analysis]
+    Orchestrator --> Tech[Technical Analysis] 
+    Orchestrator --> ESG[ESG Analysis]
     
-    subgraph "External APIs"
-        GOOGLE[Google Finance API]
-        MARKET[Market Data APIs]
-        NEWS[News APIs]
-    end
+    Fund --> GoogleAPI[Google API]
+    Tech --> GoogleAPI
+    ESG --> GoogleAPI
     
-    UI --> API
-    API --> AUTH
-    API --> MAIN
-    MAIN --> FUND
-    MAIN --> TECH
-    MAIN --> ESG
-    FUND --> SYNTH
-    TECH --> SYNTH
-    ESG --> SYNTH
-    SYNTH --> DB
+    Orchestrator --> Synthesis[Synthesis Engine]
+    Synthesis --> Database[(Database)]
     
-    FUND --> DECRYPT
-    TECH --> DECRYPT
-    ESG --> DECRYPT
-    DECRYPT --> GOOGLE
-    DECRYPT --> MARKET
-    DECRYPT --> NEWS
-    
-    IDEAS --> DECRYPT
-    IDEAS --> MARKET
-    
-    AC --> AUTH
+    EdgeFunction --> Response[Formatted Response]
 ```
 
-### Edge Functions Architecture
+### Request Flow
 
-The system consists of eight specialized Edge Functions:
+1. **Authentication & Validation**: Validate JWT token and request parameters
+2. **API Key Retrieval**: Securely fetch and decrypt user's Google API key
+3. **Analysis Orchestration**: Execute three analysis modules concurrently
+4. **Data Synthesis**: Combine analysis results with context-aware weighting
+5. **Response Formatting**: Transform results to match frontend component interfaces
+6. **Database Storage**: Persist analysis results for future reference
 
-1. **analyze-ticker** - Main orchestrator function
-2. **fundamental-analysis** - Financial fundamentals analysis
-3. **technical-analysis** - Price and volume analysis
-4. **esg-analysis** - Environmental, social, governance analysis
-5. **synthesis-engine** - Results combination and scoring
-6. **generate-ideas** - Ticker suggestion engine
-7. **encrypt-api-key** - API key encryption service
-8. **decrypt-api-key** - API key decryption service
+### Security Architecture
+
+- **Authentication**: JWT token validation using Supabase Auth
+- **Authorization**: Row-level security for database operations
+- **API Key Security**: Encrypted storage and secure retrieval
+- **Input Validation**: Comprehensive sanitization and validation
+- **Rate Limiting**: Analysis request throttling per user
+- **Error Handling**: Structured error responses without data leakage
 
 ## Components and Interfaces
 
-### 1. Main Orchestrator Function (analyze-ticker)
+### Core Edge Function Interface
 
-**Purpose**: Coordinates the entire analysis workflow and manages concurrent execution of analysis modules.
-
-**Interface**:
 ```typescript
+// Request Interface
 interface AnalysisRequest {
-  ticker_symbol: string;
-  analysis_context: 'investment' | 'trading';
-  trading_timeframe?: string; // Required for trading context
+  ticker: string;           // Stock ticker symbol (e.g., "AAPL")
+  context: "investment" | "trading";  // Analysis context
 }
 
+// Response Interface  
 interface AnalysisResponse {
   success: boolean;
   data?: {
-    analysis_id: number;
-    ticker_symbol: string;
-    synthesis_score: number;
-    convergence_factors: ConvergenceFactor[];
-    divergence_factors: DivergenceFactor[];
-    full_report: AnalysisReport;
+    synthesisScore: number;           // 0-100 score
+    recommendation: "BUY" | "SELL" | "HOLD";
+    convergenceFactors: string[];     // Supporting factors
+    divergenceFactors: string[];      // Risk factors
+    analysisId: number;              // Database record ID
   };
   error?: {
     code: string;
@@ -109,29 +79,81 @@ interface AnalysisResponse {
 }
 ```
 
-**Key Responsibilities**:
-- Request validation and sanitization
-- User authentication and API key retrieval
-- Concurrent execution of analysis modules
-- Error handling and response formatting
-- Result persistence to database
+### Analysis Orchestrator
 
-### 2. Analysis Modules
+The `AnalysisOrchestrator` class manages the complete analysis workflow:
 
-#### Fundamental Analysis Module
+```typescript
+class AnalysisOrchestrator {
+  // Core orchestration method
+  async executeAnalysis(request: AnalysisRequest, userId: string): Promise<AnalysisResult>
+  
+  // Individual analysis execution
+  private async executeFundamentalAnalysis(input: AnalysisInput): Promise<FundamentalOutput>
+  private async executeTechnicalAnalysis(input: AnalysisInput): Promise<TechnicalOutput>
+  private async executeESGAnalysis(input: AnalysisInput): Promise<ESGOutput>
+  
+  // Result synthesis and storage
+  private async synthesizeResults(results: AnalysisResults): Promise<SynthesisOutput>
+  private async storeResults(userId: string, results: SynthesisOutput): Promise<number>
+}
+```
 
-**Purpose**: Analyzes company financials, ratios, and business fundamentals.
+### Google API Integration Layer
 
-**Interface**:
+```typescript
+interface GoogleAPIClient {
+  // Fundamental data retrieval
+  async getFinancialData(ticker: string): Promise<FinancialData>
+  async getCompanyMetrics(ticker: string): Promise<CompanyMetrics>
+  
+  // Technical data retrieval  
+  async getPriceHistory(ticker: string, timeframe: string): Promise<PriceData[]>
+  async getTechnicalIndicators(ticker: string): Promise<TechnicalIndicators>
+  
+  // ESG data retrieval
+  async getESGScores(ticker: string): Promise<ESGData>
+  async getSustainabilityMetrics(ticker: string): Promise<SustainabilityData>
+}
+```
+
+### Data Transformation Layer
+
+```typescript
+interface DataTransformer {
+  // Transform raw API data to analysis format
+  transformFundamentalData(rawData: any): FundamentalAnalysisOutput
+  transformTechnicalData(rawData: any): TechnicalAnalysisOutput  
+  transformESGData(rawData: any): ESGAnalysisOutput
+  
+  // Transform analysis results to frontend format
+  transformToFrontendFormat(synthesis: SynthesisOutput): AnalysisResponse['data']
+}
+```
+
+## Data Models
+
+### Analysis Input Models
+
 ```typescript
 interface FundamentalAnalysisInput {
   ticker_symbol: string;
   api_key: string;
-  analysis_context: 'investment' | 'trading';
+  analysis_context: "investment" | "trading";
 }
 
+interface TechnicalAnalysisInput extends FundamentalAnalysisInput {
+  trading_timeframe?: string;  // Required for trading context
+}
+
+interface ESGAnalysisInput extends FundamentalAnalysisInput {}
+```
+
+### Analysis Output Models
+
+```typescript
 interface FundamentalAnalysisOutput {
-  score: number; // 0-100
+  score: number;  // 0-100
   factors: AnalysisFactor[];
   details: {
     financial_ratios: Record<string, number>;
@@ -139,25 +161,11 @@ interface FundamentalAnalysisOutput {
     valuation_metrics: Record<string, number>;
     quality_indicators: Record<string, number>;
   };
-  confidence: number; // 0-1
-}
-```
-
-#### Technical Analysis Module
-
-**Purpose**: Analyzes price patterns, indicators, and market trends.
-
-**Interface**:
-```typescript
-interface TechnicalAnalysisInput {
-  ticker_symbol: string;
-  api_key: string;
-  analysis_context: 'investment' | 'trading';
-  trading_timeframe?: string;
+  confidence: number;  // 0-1
 }
 
 interface TechnicalAnalysisOutput {
-  score: number; // 0-100
+  score: number;  // 0-100
   factors: AnalysisFactor[];
   details: {
     trend_indicators: Record<string, number>;
@@ -168,24 +176,11 @@ interface TechnicalAnalysisOutput {
       resistance_levels: number[];
     };
   };
-  confidence: number; // 0-1
-}
-```
-
-#### ESG Analysis Module
-
-**Purpose**: Evaluates environmental, social, and governance factors.
-
-**Interface**:
-```typescript
-interface ESGAnalysisInput {
-  ticker_symbol: string;
-  api_key: string;
-  analysis_context: 'investment' | 'trading';
+  confidence: number;  // 0-1
 }
 
 interface ESGAnalysisOutput {
-  score: number; // 0-100
+  score: number;  // 0-100
   factors: AnalysisFactor[];
   details: {
     environmental_score: number;
@@ -193,191 +188,73 @@ interface ESGAnalysisOutput {
     governance_score: number;
     sustainability_metrics: Record<string, number>;
   };
-  confidence: number; // 0-1
+  confidence: number;  // 0-1
 }
 ```
 
-### 3. Synthesis Engine
+### Synthesis Models
 
-**Purpose**: Combines analysis results with context-aware weighting to generate final insights.
-
-**Interface**:
 ```typescript
 interface SynthesisInput {
   ticker_symbol: string;
-  analysis_context: 'investment' | 'trading';
-  trading_timeframe?: string;
+  analysis_context: "investment" | "trading";
   fundamental_result: FundamentalAnalysisOutput;
   technical_result: TechnicalAnalysisOutput;
   esg_result: ESGAnalysisOutput;
 }
 
 interface SynthesisOutput {
-  synthesis_score: number; // 0-100
-  convergence_factors: ConvergenceFactor[];
-  divergence_factors: DivergenceFactor[];
-  full_report: AnalysisReport;
-  confidence: number; // 0-1
+  synthesis_score: number;  // 0-100
+  recommendation: "BUY" | "SELL" | "HOLD";
+  convergence_factors: string[];
+  divergence_factors: string[];
+  confidence: number;  // 0-1
+  analysis_timestamp: string;
 }
 ```
 
-**Weighting Strategy**:
-- **Investment Context**: Fundamental (50%), ESG (30%), Technical (20%)
-- **Trading Context**: Technical (60%), Fundamental (25%), ESG (15%)
-- **Timeframe Adjustments**: Shorter timeframes increase technical weighting
+### Frontend Compatibility Models
 
-### 4. Idea Generation Function
-
-**Purpose**: Generates ticker suggestions based on market screening criteria.
-
-**Interface**:
-```typescript
-interface IdeaGenerationRequest {
-  context: 'investment_idea' | 'trade_idea';
-  timeframe?: string; // For trade ideas
-}
-
-interface IdeaGenerationResponse {
-  success: boolean;
-  data?: {
-    ticker_symbol: string;
-    company_name: string;
-    justification: string;
-    confidence: number;
-  };
-  error?: {
-    code: string;
-    message: string;
-  };
-}
-```
-
-### 5. Encryption Services
-
-**Purpose**: Secure handling of user API keys with encryption/decryption capabilities.
-
-**Interface**:
-```typescript
-interface EncryptionRequest {
-  api_key: string;
-}
-
-interface EncryptionResponse {
-  success: boolean;
-  encrypted_key?: string;
-  error?: string;
-}
-
-interface DecryptionRequest {
-  encrypted_key: string;
-}
-
-interface DecryptionResponse {
-  success: boolean;
-  api_key?: string;
-  error?: string;
-}
-```
-
-## Data Models
-
-### Core Analysis Data Structures
+The response must match the existing frontend component interfaces:
 
 ```typescript
-interface AnalysisFactor {
-  category: 'fundamental' | 'technical' | 'esg';
-  type: 'positive' | 'negative';
-  description: string;
-  weight: number; // 0-1
-  confidence: number; // 0-1
-  metadata?: Record<string, any>;
+// AnalysisChart component expects
+interface ChartDataPoint {
+  name: string;
+  value: number;
+  category?: string;
+  benchmark?: number;
 }
 
-interface ConvergenceFactor {
-  category: string;
-  description: string;
-  weight: number;
-  supporting_analyses: string[]; // Which analyses support this factor
-  metadata?: Record<string, any>;
+// ResultsView component expects
+interface AnalysisResult {
+  synthesisScore: number;
+  recommendation: "BUY" | "SELL" | "HOLD";
+  convergenceFactors: string[];
+  divergenceFactors: string[];
 }
-
-interface DivergenceFactor {
-  category: string;
-  description: string;
-  weight: number;
-  conflicting_analyses: string[]; // Which analyses conflict
-  metadata?: Record<string, any>;
-}
-
-interface AnalysisReport {
-  summary: string;
-  recommendation: 'strong_buy' | 'buy' | 'hold' | 'sell' | 'strong_sell';
-  fundamental?: FundamentalAnalysisOutput;
-  technical?: TechnicalAnalysisOutput;
-  esg?: ESGAnalysisOutput;
-  synthesis_methodology: string;
-  limitations: string[];
-  metadata: {
-    analysis_timestamp: string;
-    data_sources: string[];
-    api_version: string;
-  };
-}
-```
-
-### Database Integration
-
-The system integrates with existing database schema:
-
-```sql
--- Analyses table (existing)
-CREATE TABLE analyses (
-  id SERIAL PRIMARY KEY,
-  user_id UUID REFERENCES profiles(id),
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  ticker_symbol TEXT NOT NULL,
-  analysis_context TEXT CHECK (analysis_context IN ('investment', 'trading')),
-  trading_timeframe TEXT,
-  synthesis_score INTEGER CHECK (synthesis_score >= 0 AND synthesis_score <= 100),
-  convergence_factors JSONB NOT NULL,
-  divergence_factors JSONB NOT NULL,
-  full_report JSONB NOT NULL
-);
-
--- Profiles table (existing)
-CREATE TABLE profiles (
-  id UUID PRIMARY KEY REFERENCES auth.users(id),
-  encrypted_google_api_key TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
 ```
 
 ## Error Handling
 
 ### Error Classification
 
-1. **Validation Errors** (400)
-   - Invalid ticker symbols
-   - Missing required parameters
-   - Invalid analysis context
+1. **Client Errors (4xx)**
+   - `INVALID_REQUEST`: Malformed request body
+   - `INVALID_TICKER`: Invalid ticker symbol format
+   - `MISSING_API_KEY`: User hasn't configured API key
+   - `MISSING_TOKEN`: No authentication token provided
 
-2. **Authentication Errors** (401)
-   - Missing or invalid JWT token
-   - Expired session
+2. **Server Errors (5xx)**
+   - `PROCESSING_ERROR`: Analysis execution failure
+   - `DATABASE_ERROR`: Database operation failure
+   - `EXTERNAL_API_ERROR`: Google API failure
+   - `DECRYPTION_ERROR`: API key decryption failure
 
-3. **Authorization Errors** (403)
-   - Missing API key
-   - Invalid API key format
-
-4. **External API Errors** (502/503)
-   - API rate limits exceeded
-   - External service unavailable
-   - Invalid API responses
-
-5. **Internal Errors** (500)
-   - Database connection failures
-   - Unexpected processing errors
+3. **External Service Errors (502/503/504)**
+   - `RATE_LIMIT_EXCEEDED`: API rate limits hit
+   - `SERVICE_UNAVAILABLE`: External service down
+   - `API_TIMEOUT`: Request timeout
 
 ### Error Response Format
 
@@ -388,7 +265,7 @@ interface ErrorResponse {
     code: string;
     message: string;
     details?: string;
-    retry_after?: number; // For rate limit errors
+    retry_after?: number;  // For rate limit errors
   };
   request_id: string;
   timestamp: string;
@@ -397,172 +274,137 @@ interface ErrorResponse {
 
 ### Retry Strategy
 
-- **External API Calls**: Exponential backoff with jitter (1s, 2s, 4s)
-- **Database Operations**: Linear retry with 500ms intervals
-- **Rate Limits**: Respect retry-after headers
-- **Circuit Breaker**: Fail fast after 3 consecutive failures
+- **Exponential Backoff**: For transient failures
+- **Circuit Breaker**: For persistent external service failures  
+- **Timeout Handling**: 2-minute timeout for complete analysis
+- **Graceful Degradation**: Continue with partial results when possible
 
 ## Testing Strategy
 
 ### Unit Testing
 
-Each Edge Function includes comprehensive unit tests:
+1. **Authentication Tests**
+   - Valid JWT token validation
+   - Invalid/expired token handling
+   - Missing token scenarios
 
-```typescript
-// Example test structure
-describe('analyze-ticker', () => {
-  describe('input validation', () => {
-    it('should reject invalid ticker symbols');
-    it('should require trading_timeframe for trading context');
-    it('should validate analysis_context values');
-  });
+2. **Validation Tests**
+   - Request parameter validation
+   - Ticker symbol format validation
+   - Context parameter validation
 
-  describe('analysis orchestration', () => {
-    it('should execute all analysis modules concurrently');
-    it('should handle partial failures gracefully');
-    it('should aggregate results correctly');
-  });
+3. **Analysis Module Tests**
+   - Individual analysis function execution
+   - Error handling for each module
+   - Data transformation accuracy
 
-  describe('error handling', () => {
-    it('should handle external API failures');
-    it('should handle database connection errors');
-    it('should return structured error responses');
-  });
-});
-```
+4. **Synthesis Tests**
+   - Context-aware weighting logic
+   - Score calculation algorithms
+   - Factor identification accuracy
 
 ### Integration Testing
 
-- **End-to-end analysis workflows**
-- **Database integration tests**
-- **External API integration tests**
-- **Authentication and authorization flows**
+1. **End-to-End Analysis Flow**
+   - Complete analysis workflow
+   - Database integration
+   - External API integration
 
-### Performance Testing
+2. **Error Scenario Testing**
+   - Network failures
+   - API rate limiting
+   - Invalid API keys
+   - Database connection issues
 
-- **Load testing with concurrent requests**
-- **Memory usage monitoring**
-- **Response time benchmarking**
-- **Rate limit handling validation**
+3. **Performance Testing**
+   - Concurrent analysis requests
+   - Large dataset processing
+   - Memory usage optimization
 
 ### Security Testing
 
-- **API key encryption/decryption validation**
-- **Input sanitization verification**
-- **Authentication bypass attempts**
-- **SQL injection prevention**
+1. **Authentication Security**
+   - JWT token validation
+   - Authorization bypass attempts
+   - Session management
 
-## Performance Considerations
+2. **Input Validation Security**
+   - SQL injection prevention
+   - XSS prevention
+   - Parameter tampering
 
-### Optimization Strategies
+3. **API Key Security**
+   - Encryption/decryption validation
+   - Key exposure prevention
+   - Secure transmission
 
-1. **Concurrent Execution**
-   - Analysis modules run in parallel
-   - Database queries optimized with indexes
-   - Connection pooling for external APIs
+### Load Testing
 
-2. **Caching Strategy**
-   - Market data cached for 5 minutes
-   - Company fundamentals cached for 1 hour
-   - ESG data cached for 24 hours
+1. **Concurrent Users**
+   - Multiple simultaneous analysis requests
+   - Resource contention handling
+   - Rate limiting effectiveness
 
-3. **Resource Management**
-   - Request timeouts (30 seconds per module)
-   - Memory limits per function
-   - Connection pooling
+2. **External API Limits**
+   - Google API rate limit handling
+   - Quota management
+   - Fallback strategies
 
-4. **Data Efficiency**
-   - Selective data fetching
-   - Compressed API responses
-   - Optimized JSON structures
+## Implementation Considerations
+
+### Performance Optimization
+
+1. **Concurrent Execution**: Run all three analysis modules in parallel
+2. **Caching Strategy**: Cache analysis results for repeated requests
+3. **Connection Pooling**: Reuse HTTP connections for external APIs
+4. **Memory Management**: Efficient data structure usage
+
+### Security Considerations
+
+1. **API Key Protection**: Never log or expose API keys
+2. **Input Sanitization**: Validate and sanitize all inputs
+3. **Rate Limiting**: Prevent abuse and manage costs
+4. **Audit Logging**: Track analysis requests for security monitoring
+
+### Scalability Considerations
+
+1. **Stateless Design**: No server-side state management
+2. **Database Optimization**: Efficient queries and indexing
+3. **External API Management**: Handle rate limits and quotas
+4. **Error Recovery**: Graceful handling of partial failures
 
 ### Monitoring and Observability
 
-- **Request/response logging**
-- **Performance metrics collection**
-- **Error rate monitoring**
-- **External API usage tracking**
-- **Database query performance**
+1. **Request Tracking**: Unique request IDs for tracing
+2. **Performance Metrics**: Execution time and resource usage
+3. **Error Monitoring**: Structured error logging and alerting
+4. **Business Metrics**: Analysis success rates and user patterns
 
-## Security Architecture
+## Dependencies
 
-### API Key Management
+### External Dependencies
 
-1. **Encryption at Rest**
-   - AES-256 encryption using Supabase vault
-   - Keys never stored in plain text
-   - Automatic key rotation capability
+1. **Supabase Edge Functions Runtime**: Deno-based execution environment
+2. **Google API**: Financial data source (requires user API keys)
+3. **Supabase Database**: PostgreSQL for data persistence
+4. **Supabase Auth**: JWT token validation
 
-2. **Encryption in Transit**
-   - TLS 1.3 for all communications
-   - Certificate pinning for external APIs
-   - Encrypted internal function calls
+### Internal Dependencies
 
-3. **Access Control**
-   - JWT-based authentication
-   - Row-level security (RLS) policies
-   - Function-level authorization
+1. **Shared Utilities**: Authentication, validation, error handling
+2. **Database Services**: Profile and analysis data access
+3. **Security Middleware**: Rate limiting and input validation
+4. **Logging Framework**: Structured logging and monitoring
 
-### Input Validation
+### Configuration Requirements
 
-```typescript
-// Example validation schema
-const AnalysisRequestSchema = {
-  ticker_symbol: {
-    type: 'string',
-    pattern: '^[A-Z]{1,5}$',
-    required: true
-  },
-  analysis_context: {
-    type: 'string',
-    enum: ['investment', 'trading'],
-    required: true
-  },
-  trading_timeframe: {
-    type: 'string',
-    pattern: '^(1D|1W|1M|3M|6M|1Y)$',
-    required: false
-  }
-};
-```
+1. **Environment Variables**:
+   - `SUPABASE_URL`: Supabase project URL
+   - `SUPABASE_ANON_KEY`: Public API key
+   - `SUPABASE_SERVICE_ROLE_KEY`: Service role key
+   - `GOOGLE_API_TIMEOUT`: API request timeout (default: 30s)
+   - `ANALYSIS_TIMEOUT`: Total analysis timeout (default: 120s)
 
-### Rate Limiting
+2. **Database Schema**: Profiles and analyses tables with proper RLS policies
 
-- **Per-user limits**: 100 requests/hour
-- **Per-IP limits**: 1000 requests/hour
-- **Burst protection**: 10 requests/minute
-- **API key usage tracking**
-
-## Deployment and Scaling
-
-### Edge Function Deployment
-
-```typescript
-// supabase/functions/analyze-ticker/index.ts
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-serve(async (req) => {
-  // Function implementation
-});
-```
-
-### Environment Configuration
-
-```typescript
-// Environment variables
-const config = {
-  SUPABASE_URL: Deno.env.get('SUPABASE_URL'),
-  SUPABASE_ANON_KEY: Deno.env.get('SUPABASE_ANON_KEY'),
-  SUPABASE_SERVICE_ROLE_KEY: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
-  ENCRYPTION_KEY: Deno.env.get('ENCRYPTION_KEY'),
-  EXTERNAL_API_TIMEOUT: parseInt(Deno.env.get('EXTERNAL_API_TIMEOUT') || '30000'),
-};
-```
-
-### Scaling Considerations
-
-- **Horizontal scaling**: Edge Functions auto-scale
-- **Database scaling**: Connection pooling and read replicas
-- **External API limits**: Rate limiting and caching
-- **Cost optimization**: Function cold start minimization
+3. **Security Configuration**: Rate limits, CORS settings, security headers

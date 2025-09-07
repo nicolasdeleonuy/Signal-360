@@ -28,6 +28,31 @@ export interface AnalysisResponse {
 }
 
 /**
+ * Standard success response interface
+ */
+export interface SuccessResponse<T = any> {
+  success: true;
+  data: T;
+  request_id: string;
+  timestamp: string;
+}
+
+/**
+ * Standard error response interface
+ */
+export interface ErrorResponse {
+  success: false;
+  error: {
+    code: string;
+    message: string;
+    details?: string;
+    retry_after?: number;
+  };
+  request_id: string;
+  timestamp: string;
+}
+
+/**
  * Individual analysis module interfaces
  */
 export interface FundamentalAnalysisInput {
@@ -104,6 +129,28 @@ export interface SynthesisOutput {
   synthesis_score: number; // 0-100
   convergence_factors: ConvergenceFactor[];
   divergence_factors: DivergenceFactor[];
+  trade_parameters: {
+    entry_price: number;
+    stop_loss: number;
+    take_profit_levels: number[];
+    risk_reward_ratio: number;
+    position_size_recommendation: number; // As percentage of portfolio
+    confidence: number;
+    methodology: string;
+    metadata: {
+      calculation_timestamp: string;
+      volatility_used: number;
+      support_resistance_levels: {
+        support: number[];
+        resistance: number[];
+      };
+      risk_metrics: {
+        max_drawdown_risk: number;
+        expected_return: number;
+        sharpe_estimate: number;
+      };
+    };
+  };
   full_report: AnalysisReport;
   confidence: number; // 0-1
 }
@@ -189,10 +236,17 @@ export interface AnalysisReport {
   esg?: ESGAnalysisOutput;
   synthesis_methodology: string;
   limitations: string[];
+  actionable_insights?: string[];
   metadata: {
     analysis_timestamp: string;
     data_sources: string[];
     api_version: string;
+    confidence_score?: number;
+    factor_analysis_summary?: {
+      convergence_factors: number;
+      divergence_factors: number;
+      net_sentiment: number;
+    };
   };
 }
 

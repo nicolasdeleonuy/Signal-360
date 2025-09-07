@@ -1,7 +1,7 @@
 // Row Level Security (RLS) enforcement utilities
 // Provides RLS policy enforcement and security validation
 
-import { supabase } from '../../supabase';
+import { supabase } from '../../supabaseClient';
 import { DatabaseErrorHandler } from '../error-handler';
 import { DatabaseError } from '../../../types/database';
 

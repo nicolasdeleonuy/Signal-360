@@ -126,7 +126,7 @@ export interface CreateAnalysisInput {
   /** Type of analysis */
   analysis_context: 'investment' | 'trading';
   /** Trading timeframe (required for trading analysis) */
-  trading_timeframe?: string;
+  trading_timeframe?: string | null;
   /** Final synthesis score */
   synthesis_score: number;
   /** Positive factors */

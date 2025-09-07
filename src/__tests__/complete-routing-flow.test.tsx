@@ -1,20 +1,22 @@
-import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import App from '../App'
+import { MockAuthCallback } from '../types/mocks'
+import { Session } from '@supabase/supabase-js'
+import { vi } from 'vitest'
 
 // Mock Supabase
-const mockSignInWithPassword = jest.fn()
-const mockSignUp = jest.fn()
-const mockSignOut = jest.fn()
+const mockSignInWithPassword = vi.fn()
+const mockSignUp = vi.fn()
+const mockSignOut = vi.fn()
 
-jest.mock('../lib/supabase', () => ({
+vi.mock('../lib/supabase', () => ({
   supabase: {
     auth: {
-      getSession: jest.fn(),
-      onAuthStateChange: jest.fn().mockReturnValue({
-        data: { subscription: { unsubscribe: jest.fn() } },
+      getSession: vi.fn(),
+      onAuthStateChange: vi.fn().mockReturnValue({
+        data: { subscription: { unsubscribe: vi.fn() } },
       }),
       signUp: mockSignUp,
       signInWithPassword: mockSignInWithPassword,
@@ -27,18 +29,18 @@ const { supabase } = require('../lib/supabase')
 
 describe('Complete Routing Flow', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('should handle complete user journey from sign-up to profile', async () => {
     const user = userEvent.setup()
-    let authStateCallback: (event: string, session: any) => void
+    let authStateCallback: MockAuthCallback
 
     // Mock auth state change handler
-    supabase.auth.onAuthStateChange.mockImplementation((callback) => {
+    supabase.auth.onAuthStateChange.mockImplementation((callback: MockAuthCallback) => {
       authStateCallback = callback
       return {
-        data: { subscription: { unsubscribe: jest.fn() } },
+        data: { subscription: { unsubscribe: vi.fn() } },
       }
     })
 
@@ -100,7 +102,10 @@ describe('Complete Routing Flow', () => {
         last_sign_in_at: '2023-12-01T00:00:00Z',
       },
       access_token: 'token',
-    }
+      refresh_token: 'refresh_token',
+      expires_in: 3600,
+      token_type: 'bearer'
+    } as Session
 
     authStateCallback!('SIGNED_IN', mockSession)
 
@@ -129,12 +134,12 @@ describe('Complete Routing Flow', () => {
 
   it('should handle protected route access and post-login redirect', async () => {
     const user = userEvent.setup()
-    let authStateCallback: (event: string, session: any) => void
+    let authStateCallback: MockAuthCallback
 
-    supabase.auth.onAuthStateChange.mockImplementation((callback) => {
+    supabase.auth.onAuthStateChange.mockImplementation((callback: MockAuthCallback) => {
       authStateCallback = callback
       return {
-        data: { subscription: { unsubscribe: jest.fn() } },
+        data: { subscription: { unsubscribe: vi.fn() } },
       }
     })
 
@@ -187,7 +192,10 @@ describe('Complete Routing Flow', () => {
         last_sign_in_at: '2023-12-01T00:00:00Z',
       },
       access_token: 'token',
-    }
+      refresh_token: 'refresh_token',
+      expires_in: 3600,
+      token_type: 'bearer'
+    } as Session
 
     authStateCallback!('SIGNED_IN', mockSession)
 
@@ -200,12 +208,12 @@ describe('Complete Routing Flow', () => {
   })
 
   it('should handle session expiry during navigation', async () => {
-    let authStateCallback: (event: string, session: any) => void
+    let authStateCallback: MockAuthCallback
 
-    supabase.auth.onAuthStateChange.mockImplementation((callback) => {
+    supabase.auth.onAuthStateChange.mockImplementation((callback: MockAuthCallback) => {
       authStateCallback = callback
       return {
-        data: { subscription: { unsubscribe: jest.fn() } },
+        data: { subscription: { unsubscribe: vi.fn() } },
       }
     })
 
@@ -267,8 +275,6 @@ describe('Complete Routing Flow', () => {
   })
 
   it('should maintain auth state consistency across route changes', async () => {
-    const user = userEvent.setup()
-    
     // Start with authenticated user
     const mockUser = {
       id: '1',

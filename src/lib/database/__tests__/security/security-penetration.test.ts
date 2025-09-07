@@ -6,7 +6,7 @@ import { RLSEnforcer, SecurityOperation } from '../../security/rls-enforcer';
 import { InputValidator } from '../../security/input-validator';
 import { SecureQueryBuilder } from '../../security/query-builder';
 import { DatabaseService } from '../../database-service';
-import { supabase } from '../../../supabase';
+import { supabase } from '../../../supabaseClient';
 
 // Mock Supabase for security testing
 vi.mock('../../../supabase', () => ({
@@ -24,7 +24,6 @@ vi.mock('../../../supabase', () => ({
 describe('Security Penetration Tests', () => {
   const legitimateUserId = '123e4567-e89b-12d3-a456-426614174000';
   const attackerUserId = '123e4567-e89b-12d3-a456-426614174001';
-  const maliciousUserId = 'malicious-user-id';
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -451,8 +450,6 @@ describe('Security Penetration Tests', () => {
 
   describe('Security Header and Configuration Tests', () => {
     it('should validate secure query builder configuration', () => {
-      const builder = new SecureQueryBuilder('profiles');
-
       // Should reject invalid table names
       expect(() => new SecureQueryBuilder('profiles; DROP TABLE users;')).toThrow(
         'Invalid table name format'

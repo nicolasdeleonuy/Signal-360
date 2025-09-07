@@ -322,7 +322,7 @@ export const SecurityUtils = {
   /**
    * Test input sanitization
    */
-  testSanitization: (input: string, sanitized: string) => {
+  testSanitization: (_input: string, sanitized: string) => {
     expect(sanitized).not.toContain('<script>');
     expect(sanitized).not.toContain('</script>');
     expect(sanitized).not.toContain(';');

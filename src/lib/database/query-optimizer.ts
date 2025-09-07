@@ -1,7 +1,7 @@
 // Query optimization utilities
 // Provides query optimization, caching, and performance monitoring
 
-import { supabase } from '../supabase';
+import { supabase } from '../supabaseClient';
 import { DatabaseOperation } from './error-handler';
 
 /**
@@ -200,7 +200,9 @@ export class QueryOptimizer {
     // Implement LRU eviction if cache is full
     if (this.queryCache.size >= this.MAX_CACHE_SIZE) {
       const oldestKey = this.queryCache.keys().next().value;
-      this.queryCache.delete(oldestKey);
+      if (oldestKey !== undefined) {
+        this.queryCache.delete(oldestKey);
+      }
     }
 
     this.queryCache.set(queryKey, {
@@ -330,10 +332,8 @@ export class QueryOptimizer {
  */
 export class OptimizedQueryBuilder {
   private query: any;
-  private tableName: string;
 
   constructor(tableName: string) {
-    this.tableName = tableName;
     this.query = supabase.from(tableName);
   }
 

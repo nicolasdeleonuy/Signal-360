@@ -3,15 +3,16 @@ import { render, screen } from '@testing-library/react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { ProtectedRoute } from '../protected-route'
 import { useAuth } from '../../contexts/auth-context'
+import { vi } from 'vitest'
 
 // Mock the auth context
-jest.mock('../../contexts/auth-context')
-const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>
+vi.mock('../../contexts/auth-context')
+const mockUseAuth = useAuth as any
 
 // Mock Navigate component
-const mockNavigate = jest.fn()
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+const mockNavigate = vi.fn()
+vi.mock('react-router-dom', () => ({
+  ...vi.importActual('react-router-dom'),
   Navigate: ({ to, state, replace }: any) => {
     mockNavigate(to, state, replace)
     return <div data-testid="navigate">Redirecting to {to}</div>
@@ -32,7 +33,7 @@ function TestWrapper({ children }: { children: React.ReactNode }) {
 
 describe('ProtectedRoute', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('should show loading spinner when authentication is loading', () => {
@@ -40,9 +41,9 @@ describe('ProtectedRoute', () => {
       user: null,
       session: null,
       loading: true,
-      signUp: jest.fn(),
-      signIn: jest.fn(),
-      signOut: jest.fn(),
+      signUp: vi.fn(),
+      signIn: vi.fn(),
+      signOut: vi.fn(),
     })
 
     render(
@@ -62,9 +63,9 @@ describe('ProtectedRoute', () => {
       user: null,
       session: null,
       loading: false,
-      signUp: jest.fn(),
-      signIn: jest.fn(),
-      signOut: jest.fn(),
+      signUp: vi.fn(),
+      signIn: vi.fn(),
+      signOut: vi.fn(),
     })
 
     render(
@@ -92,9 +93,9 @@ describe('ProtectedRoute', () => {
       user: mockUser as any,
       session: { user: mockUser } as any,
       loading: false,
-      signUp: jest.fn(),
-      signIn: jest.fn(),
-      signOut: jest.fn(),
+      signUp: vi.fn(),
+      signIn: vi.fn(),
+      signOut: vi.fn(),
     })
 
     render(
@@ -124,9 +125,9 @@ describe('ProtectedRoute', () => {
       user: null,
       session: null,
       loading: true,
-      signUp: jest.fn(),
-      signIn: jest.fn(),
-      signOut: jest.fn(),
+      signUp: vi.fn(),
+      signIn: vi.fn(),
+      signOut: vi.fn(),
     })
 
     const { rerender } = render(
@@ -144,9 +145,9 @@ describe('ProtectedRoute', () => {
       user: mockUser as any,
       session: { user: mockUser } as any,
       loading: false,
-      signUp: jest.fn(),
-      signIn: jest.fn(),
-      signOut: jest.fn(),
+      signUp: vi.fn(),
+      signIn: vi.fn(),
+      signOut: vi.fn(),
     })
 
     rerender(
@@ -166,9 +167,9 @@ describe('ProtectedRoute', () => {
       user: null,
       session: null,
       loading: false,
-      signUp: jest.fn(),
-      signIn: jest.fn(),
-      signOut: jest.fn(),
+      signUp: vi.fn(),
+      signIn: vi.fn(),
+      signOut: vi.fn(),
     })
 
     render(
@@ -198,9 +199,9 @@ describe('ProtectedRoute', () => {
       user: mockUser as any,
       session: { user: mockUser } as any,
       loading: false,
-      signUp: jest.fn(),
-      signIn: jest.fn(),
-      signOut: jest.fn(),
+      signUp: vi.fn(),
+      signIn: vi.fn(),
+      signOut: vi.fn(),
     })
 
     render(

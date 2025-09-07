@@ -1,20 +1,23 @@
-import React from 'react'
+
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import App from '../App'
+import { MockAuthCallback } from '../types/mocks'
+import { Session } from '@supabase/supabase-js'
+import { vi } from 'vitest'
 
 // Mock Supabase
-const mockSignInWithPassword = jest.fn()
-const mockSignUp = jest.fn()
-const mockSignOut = jest.fn()
+const mockSignInWithPassword = vi.fn()
+const mockSignUp = vi.fn()
+const mockSignOut = vi.fn()
 
-jest.mock('../lib/supabase', () => ({
+vi.mock('../lib/supabase', () => ({
   supabase: {
     auth: {
-      getSession: jest.fn(),
-      onAuthStateChange: jest.fn().mockReturnValue({
-        data: { subscription: { unsubscribe: jest.fn() } },
+      getSession: vi.fn(),
+      onAuthStateChange: vi.fn().mockReturnValue({
+        data: { subscription: { unsubscribe: vi.fn() } },
       }),
       signUp: mockSignUp,
       signInWithPassword: mockSignInWithPassword,
@@ -59,7 +62,7 @@ function TestApp({
 
 describe('App Routing', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('should redirect unauthenticated users from root to login', async () => {
@@ -249,12 +252,12 @@ describe('App Routing', () => {
   })
 
   it('should handle auth state changes across routes', async () => {
-    let authStateCallback: (event: string, session: any) => void
+    let authStateCallback: MockAuthCallback
 
-    supabase.auth.onAuthStateChange.mockImplementation((callback) => {
+    supabase.auth.onAuthStateChange.mockImplementation((callback: MockAuthCallback) => {
       authStateCallback = callback
       return {
-        data: { subscription: { unsubscribe: jest.fn() } },
+        data: { subscription: { unsubscribe: vi.fn() } },
       }
     })
 
@@ -274,7 +277,10 @@ describe('App Routing', () => {
         last_sign_in_at: '2023-12-01T00:00:00Z',
       },
       access_token: 'token',
-    }
+      refresh_token: 'refresh_token',
+      expires_in: 3600,
+      token_type: 'bearer'
+    } as Session
 
     authStateCallback!('SIGNED_IN', mockSession)
 

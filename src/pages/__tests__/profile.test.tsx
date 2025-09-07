@@ -1,20 +1,24 @@
-import React from 'react'
+// Migrated to Vitest
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
+import { vi } from 'vitest'
 import { ProfilePage } from '../profile'
 import { useAuth } from '../../contexts/auth-context'
 
 // Mock the auth context
-jest.mock('../../contexts/auth-context')
-const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>
+vi.mock('../../contexts/auth-context')
+const mockUseAuth = useAuth as vi.MockedFunction<typeof useAuth>
 
 // Mock navigate
-const mockNavigate = jest.fn()
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useNavigate: () => mockNavigate,
-}))
+const mockNavigate = vi.fn()
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom')
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  }
+})
 
 function renderProfilePage() {
   return render(
@@ -25,7 +29,7 @@ function renderProfilePage() {
 }
 
 describe('ProfilePage', () => {
-  const mockSignOut = jest.fn()
+  const mockSignOut = vi.fn()
   const mockUser = {
     id: '123e4567-e89b-12d3-a456-426614174000',
     email: 'test@example.com',
@@ -35,13 +39,13 @@ describe('ProfilePage', () => {
   }
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockUseAuth.mockReturnValue({
       user: mockUser as any,
       session: { user: mockUser } as any,
       loading: false,
-      signUp: jest.fn(),
-      signIn: jest.fn(),
+      signUp: vi.fn(),
+      signIn: vi.fn(),
       signOut: mockSignOut,
     })
   })
@@ -95,8 +99,8 @@ describe('ProfilePage', () => {
       user: userWithoutDates as any,
       session: { user: userWithoutDates } as any,
       loading: false,
-      signUp: jest.fn(),
-      signIn: jest.fn(),
+      signUp: vi.fn(),
+      signIn: vi.fn(),
       signOut: mockSignOut,
     })
 
@@ -119,7 +123,7 @@ describe('ProfilePage', () => {
 
   it('should show loading state during sign out', async () => {
     const user = userEvent.setup()
-    let resolveSignOut: () => void
+    let resolveSignOut: (value: unknown) => void
     mockSignOut.mockImplementation(() => new Promise(resolve => {
       resolveSignOut = resolve
     }))
@@ -132,7 +136,7 @@ describe('ProfilePage', () => {
     expect(signOutButton).toBeDisabled()
 
     // Resolve the promise
-    resolveSignOut!()
+    resolveSignOut!({ error: null })
     await waitFor(() => {
       expect(screen.queryByText('Signing Out...')).not.toBeInTheDocument()
     })
@@ -157,8 +161,8 @@ describe('ProfilePage', () => {
       user: null,
       session: null,
       loading: true,
-      signUp: jest.fn(),
-      signIn: jest.fn(),
+      signUp: vi.fn(),
+      signIn: vi.fn(),
       signOut: mockSignOut,
     })
 
@@ -173,8 +177,8 @@ describe('ProfilePage', () => {
       user: null,
       session: null,
       loading: false,
-      signUp: jest.fn(),
-      signIn: jest.fn(),
+      signUp: vi.fn(),
+      signIn: vi.fn(),
       signOut: mockSignOut,
     })
 
@@ -191,8 +195,8 @@ describe('ProfilePage', () => {
       user: null,
       session: null,
       loading: false,
-      signUp: jest.fn(),
-      signIn: jest.fn(),
+      signUp: vi.fn(),
+      signIn: vi.fn(),
       signOut: mockSignOut,
     })
 
@@ -215,7 +219,7 @@ describe('ProfilePage', () => {
   it('should handle dashboard button click', async () => {
     const user = userEvent.setup()
     // Mock window.alert
-    const alertSpy = jest.spyOn(window, 'alert').mockImplementation(() => {})
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
     renderProfilePage()
 
     const dashboardButton = screen.getByRole('button', { name: 'Go to Dashboard' })
@@ -264,8 +268,8 @@ describe('ProfilePage', () => {
       user: userWithDifferentFormat as any,
       session: { user: userWithDifferentFormat } as any,
       loading: false,
-      signUp: jest.fn(),
-      signIn: jest.fn(),
+      signUp: vi.fn(),
+      signIn: vi.fn(),
       signOut: mockSignOut,
     })
 

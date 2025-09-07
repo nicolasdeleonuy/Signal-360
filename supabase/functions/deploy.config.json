@@ -104,6 +104,16 @@
         "SUPABASE_SERVICE_ROLE_KEY",
         "ENCRYPTION_KEY"
       ]
+    },
+    "ticker-search": {
+      "description": "Predictive ticker search with Finnhub integration",
+      "timeout": 30,
+      "memory": 256,
+      "environment": "production",
+      "dependencies": [],
+      "secrets": [
+        "FINNHUB_API_KEY"
+      ]
     }
   },
   "environments": {

@@ -1,7 +1,7 @@
 // Database connection management utilities
 // Provides connection pooling, health monitoring, and transaction management
 
-import { supabase } from '../supabase';
+import { supabase } from '../supabaseClient';
 import { DatabaseErrorHandler } from './error-handler';
 import { DatabaseError } from '../../types/database';
 

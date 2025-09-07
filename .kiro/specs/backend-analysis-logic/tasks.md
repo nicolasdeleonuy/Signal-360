@@ -1,93 +1,142 @@
 # Implementation Plan
 
-- [x] 1. Set up Edge Functions infrastructure and shared utilities
-  - Create base directory structure for Supabase Edge Functions
-  - Implement shared TypeScript interfaces and types for all analysis modules
-  - Create common utilities for authentication, validation, and error handling
-  - Set up environment configuration and constants
-  - _Requirements: 1.1, 1.4, 5.1, 5.4, 6.4_
+- [x] 1. Create Edge Function scaffolding and basic structure
+  - Create the `supabase/functions/signal-360-analysis/index.ts` file with proper imports and basic request handler structure
+  - Implement CORS handling and method validation following existing patterns
+  - Set up request ID generation and basic logging infrastructure
+  - _Requirements: 1.1, 8.1, 8.4_
 
-- [x] 2. Implement API key encryption/decryption Edge Functions
-  - Create encrypt-api-key Edge Function with AES-256 encryption
-  - Create decrypt-api-key Edge Function with secure decryption
-  - Implement input validation and error handling for encryption services
-  - Add comprehensive unit tests for encryption/decryption functionality
-  - _Requirements: 1.3, 6.1, 6.2_
+- [x] 2. Implement authentication and authorization layer
+  - Add JWT token validation using existing `authenticateUser` utility
+  - Implement user context extraction and validation
+  - Add proper error responses for authentication failures
+  - _Requirements: 1.1, 1.2_
 
-- [x] 3. Create fundamental analysis Edge Function
-  - Implement fundamental-analysis Edge Function with external API integration
-  - Add financial ratios calculation and company fundamentals analysis
-  - Implement data validation and error handling for external API responses
-  - Create unit tests for fundamental analysis logic and API integration
-  - _Requirements: 2.1, 2.5, 2.6_
+- [x] 3. Implement request validation and input sanitization
+  - Create request body parsing and validation logic
+  - Validate ticker symbol format and context parameters
+  - Implement input sanitization for security
+  - Add comprehensive validation error responses
+  - _Requirements: 1.3, 1.4, 6.4_
 
-- [x] 4. Create technical analysis Edge Function
-  - Implement technical-analysis Edge Function with price pattern analysis
-  - Add technical indicators calculation based on timeframe context
-  - Implement trend analysis and support/resistance level detection
-  - Create unit tests for technical analysis algorithms and timeframe handling
-  - _Requirements: 2.2, 2.5, 2.6_
+- [x] 4. Implement secure API key retrieval system
+  - Create database service integration for encrypted API key retrieval
+  - Implement API key decryption using existing decrypt-api-key function
+  - Add proper error handling for missing or invalid API keys
+  - Ensure API key security throughout the process
+  - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-- [x] 5. Create ESG analysis Edge Function
-  - Implement esg-analysis Edge Function with ESG data integration
-  - Add environmental, social, and governance scoring logic
-  - Implement sustainability metrics calculation and validation
-  - Create unit tests for ESG analysis and scoring algorithms
-  - _Requirements: 2.3, 2.5, 2.6_
+- [x] 5. Create Google API client integration layer
+  - Implement HTTP client for Google API requests with proper authentication
+  - Create methods for fundamental data retrieval (financial ratios, growth metrics)
+  - Create methods for technical data retrieval (price history, indicators)
+  - Create methods for ESG data retrieval (sustainability scores)
+  - Add timeout and retry logic for external API calls
+  - _Requirements: 4.1, 4.2, 4.3, 6.5_
 
-- [x] 6. Implement synthesis engine Edge Function
-  - Create synthesis-engine Edge Function with context-aware weighting
-  - Implement convergence and divergence factor identification logic
-  - Add final score calculation with investment vs trading context weighting
-  - Create comprehensive unit tests for synthesis logic and weighting strategies
-  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8_
+- [ ] 6. Implement fundamental analysis module
+  - Create fundamental analysis logic using Google API data
+  - Calculate financial ratios, growth metrics, and valuation indicators
+  - Generate analysis factors and confidence scores
+  - Transform raw data to structured FundamentalAnalysisOutput format
+  - _Requirements: 4.1, 5.5_
 
-- [x] 7. Create main orchestrator Edge Function
-  - Implement analyze-ticker Edge Function as the primary coordinator
-  - Add concurrent execution logic for all three analysis modules
-  - Implement request validation, user authentication, and API key retrieval
-  - Create database integration for storing analysis results
-  - Add comprehensive error handling and response formatting
-  - _Requirements: 1.1, 1.2, 1.5, 1.6, 6.5_
+- [ ] 7. Implement technical analysis module
+  - Create technical analysis logic with timeframe consideration
+  - Calculate trend indicators, momentum indicators, and volume metrics
+  - Identify support and resistance levels
+  - Generate technical analysis factors and confidence scores
+  - Transform data to TechnicalAnalysisOutput format
+  - _Requirements: 4.2, 3.1, 3.2, 5.5_
 
-- [x] 8. Implement idea generation Edge Function
-  - Create generate-ideas Edge Function with market screening logic
-  - Add investment vs trading context-specific ticker suggestion algorithms
-  - Implement market data integration for idea generation
-  - Create unit tests for idea generation logic and market screening
-  - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6_
+- [ ] 8. Implement ESG analysis module
+  - Create ESG analysis logic using sustainability data
+  - Calculate environmental, social, and governance scores
+  - Generate ESG factors and confidence metrics
+  - Transform data to ESGAnalysisOutput format
+  - _Requirements: 4.3, 5.5_
 
-- [x] 9. Add comprehensive error handling and logging
-  - Implement structured error responses across all Edge Functions
-  - Add detailed logging for debugging and monitoring purposes
-  - Create rate limiting and timeout handling for external API calls
-  - Implement retry logic with exponential backoff for failed requests
-  - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6_
+- [x] 9. Create analysis orchestrator class
+  - Implement AnalysisOrchestrator class with concurrent execution logic
+  - Add methods for executing all three analysis modules in parallel
+  - Implement error handling for individual module failures
+  - Add performance monitoring and execution time tracking
+  - _Requirements: 4.4, 4.5, 7.3_
 
-- [x] 10. Implement security and validation layers
-  - Add input sanitization and validation schemas for all Edge Functions
-  - Implement JWT authentication verification across all functions
-  - Create rate limiting and abuse prevention mechanisms
+- [ ] 10. Implement synthesis engine integration
+  - Create synthesis logic that combines all three analysis results
+  - Implement context-aware weighting (investment vs trading focus)
+  - Generate convergence and divergence factors
+  - Calculate final synthesis score and recommendation
+  - _Requirements: 3.1, 3.2, 5.1, 5.2, 5.3, 5.4_
+
+- [ ] 11. Implement database integration for result storage
+  - Create database service methods for storing analysis results
+  - Implement proper data transformation for database schema
+  - Add error handling for database operations
+  - Ensure proper user association and RLS compliance
+  - _Requirements: 5.5, 8.3_
+
+- [ ] 12. Create response formatting and frontend compatibility layer
+  - Transform synthesis results to match AnalysisChart component interface
+  - Transform results to match ResultsView component interface
+  - Ensure proper data structure for convergence/divergence factors
+  - Add final score formatting and recommendation mapping
+  - _Requirements: 5.1, 5.2, 5.3, 5.4_
+
+- [ ] 13. Implement comprehensive error handling system
+  - Add structured error responses for all failure scenarios
+  - Implement proper HTTP status codes for different error types
+  - Add retry logic for transient failures
+  - Implement timeout handling for long-running operations
+  - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
+
+- [ ] 14. Add logging and monitoring infrastructure
+  - Implement structured logging for all operations
+  - Add performance metrics collection
+  - Implement security event logging
+  - Add request tracing and error tracking
+  - Ensure sensitive data redaction in logs
+  - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
+
+- [ ] 15. Implement security middleware and rate limiting
   - Add security headers and CORS configuration
-  - _Requirements: 6.1, 6.2, 6.4, 6.6_
+  - Implement rate limiting per user
+  - Add input validation security measures
+  - Implement circuit breaker for external API protection
+  - _Requirements: 8.2, 8.3, 8.5_
 
-- [x] 11. Create integration tests for complete analysis workflow
-  - Write end-to-end tests for the complete analysis pipeline
-  - Test concurrent execution and error handling scenarios
-  - Validate database integration and data persistence
-  - Test authentication and authorization flows
-  - _Requirements: 1.1, 1.2, 1.6, 2.4, 3.8_
+- [ ] 16. Create comprehensive unit tests for core functionality
+  - Write tests for authentication and authorization logic
+  - Create tests for request validation and sanitization
+  - Add tests for individual analysis modules
+  - Write tests for synthesis logic and scoring algorithms
+  - _Requirements: All requirements validation_
 
-- [x] 12. Add performance optimization and caching
-  - Implement caching strategies for external API responses
-  - Add connection pooling for database and external API calls
-  - Optimize JSON structures and data transfer efficiency
-  - Create performance monitoring and metrics collection
-  - _Requirements: 2.6, 6.2, 6.3_
+- [ ] 17. Create integration tests for end-to-end workflow
+  - Write tests for complete analysis workflow
+  - Create tests for database integration
+  - Add tests for external API integration with mocked responses
+  - Write tests for error scenarios and edge cases
+  - _Requirements: All requirements validation_
 
-- [x] 13. Create deployment configuration and documentation
-  - Set up Supabase Edge Functions deployment configuration
-  - Create environment variable templates and documentation
-  - Add API documentation with request/response examples
-  - Create troubleshooting guide and operational runbook
-  - _Requirements: 5.1, 5.6_
+- [ ] 18. Implement performance optimization and caching
+  - Add response caching for repeated analysis requests
+  - Implement connection pooling for external APIs
+  - Optimize memory usage and garbage collection
+  - Add performance monitoring and alerting
+  - _Requirements: 7.3, 7.4_
+
+- [ ] 19. Create deployment configuration and documentation
+  - Add function deployment configuration
+  - Create API documentation with request/response examples
+  - Add troubleshooting guide for common issues
+  - Document security considerations and best practices
+  - _Requirements: 8.1, 8.4_
+
+- [ ] 20. Integrate with existing frontend components
+  - Test integration with AnalysisChart component
+  - Test integration with ResultsView component
+  - Verify data compatibility and proper rendering
+  - Add any necessary frontend adjustments for new data format
+  - _Requirements: 5.1, 5.2, 5.3, 5.4_

@@ -1,16 +1,17 @@
-import React from 'react'
+// Migrated to Vitest
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
+import { vi } from 'vitest'
 import { ProfilePage } from '../profile'
 import { AuthProvider } from '../../contexts/auth-context'
 
 // Mock Supabase for integration tests
-const mockSignOut = jest.fn()
-jest.mock('../../lib/supabase', () => ({
+const mockSignOut = vi.fn()
+vi.mock('../../lib/supabase', () => ({
   supabase: {
     auth: {
-      getSession: jest.fn().mockResolvedValue({
+      getSession: vi.fn().mockResolvedValue({
         data: { 
           session: {
             user: {
@@ -24,11 +25,11 @@ jest.mock('../../lib/supabase', () => ({
         },
         error: null,
       }),
-      onAuthStateChange: jest.fn().mockReturnValue({
-        data: { subscription: { unsubscribe: jest.fn() } },
+      onAuthStateChange: vi.fn().mockReturnValue({
+        data: { subscription: { unsubscribe: vi.fn() } },
       }),
-      signUp: jest.fn(),
-      signInWithPassword: jest.fn(),
+      signUp: vi.fn(),
+      signInWithPassword: vi.fn(),
       signOut: mockSignOut,
     },
   },
@@ -46,7 +47,7 @@ function TestApp({ initialEntries = ['/profile'] }: { initialEntries?: string[] 
 
 describe('ProfilePage Integration', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('should integrate with auth context to display user information', async () => {
@@ -78,15 +79,15 @@ describe('ProfilePage Integration', () => {
 
   it('should handle auth context loading state', () => {
     // Mock loading state
-    jest.doMock('../../lib/supabase', () => ({
+    vi.doMock('../../lib/supabase', () => ({
       supabase: {
         auth: {
-          getSession: jest.fn().mockImplementation(() => new Promise(() => {})), // Never resolves
-          onAuthStateChange: jest.fn().mockReturnValue({
-            data: { subscription: { unsubscribe: jest.fn() } },
+          getSession: vi.fn().mockImplementation(() => new Promise(() => {})), // Never resolves
+          onAuthStateChange: vi.fn().mockReturnValue({
+            data: { subscription: { unsubscribe: vi.fn() } },
           }),
-          signUp: jest.fn(),
-          signInWithPassword: jest.fn(),
+          signUp: vi.fn(),
+          signInWithPassword: vi.fn(),
           signOut: mockSignOut,
         },
       },
@@ -116,18 +117,18 @@ describe('ProfilePage Integration', () => {
 
   it('should handle session without user data', async () => {
     // Mock session without user
-    jest.doMock('../../lib/supabase', () => ({
+    vi.doMock('../../lib/supabase', () => ({
       supabase: {
         auth: {
-          getSession: jest.fn().mockResolvedValue({
+          getSession: vi.fn().mockResolvedValue({
             data: { session: null },
             error: null,
           }),
-          onAuthStateChange: jest.fn().mockReturnValue({
-            data: { subscription: { unsubscribe: jest.fn() } },
+          onAuthStateChange: vi.fn().mockReturnValue({
+            data: { subscription: { unsubscribe: vi.fn() } },
           }),
-          signUp: jest.fn(),
-          signInWithPassword: jest.fn(),
+          signUp: vi.fn(),
+          signInWithPassword: vi.fn(),
           signOut: mockSignOut,
         },
       },
@@ -156,21 +157,21 @@ describe('ProfilePage Integration', () => {
   it('should handle auth state changes', async () => {
     let authStateCallback: (event: string, session: any) => void
 
-    jest.doMock('../../lib/supabase', () => ({
+    vi.doMock('../../lib/supabase', () => ({
       supabase: {
         auth: {
-          getSession: jest.fn().mockResolvedValue({
+          getSession: vi.fn().mockResolvedValue({
             data: { session: null },
             error: null,
           }),
-          onAuthStateChange: jest.fn().mockImplementation((callback) => {
+          onAuthStateChange: vi.fn().mockImplementation((callback) => {
             authStateCallback = callback
             return {
-              data: { subscription: { unsubscribe: jest.fn() } },
+              data: { subscription: { unsubscribe: vi.fn() } },
             }
           }),
-          signUp: jest.fn(),
-          signInWithPassword: jest.fn(),
+          signUp: vi.fn(),
+          signInWithPassword: vi.fn(),
           signOut: mockSignOut,
         },
       },

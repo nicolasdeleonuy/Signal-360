@@ -1,41 +1,57 @@
-import React from 'react'
+import { vi } from 'vitest'
+
+// Hoisted mock variables - MUST be defined before vi.mock calls
+const mockSignInWithPassword = vi.hoisted(() => vi.fn())
+const mockSignUp = vi.hoisted(() => vi.fn())
+const mockSignOut = vi.hoisted(() => vi.fn())
+const mockGetSession = vi.hoisted(() => vi.fn())
+
+// Mock Supabase
+vi.mock('../lib/supabase', () => ({
+  supabase: {
+    auth: {
+      getSession: mockGetSession,
+      onAuthStateChange: vi.fn().mockReturnValue({
+        data: { subscription: { unsubscribe: vi.fn() } },
+      }),
+      signUp: mockSignUp,
+      signInWithPassword: mockSignInWithPassword,
+      signOut: mockSignOut,
+      refreshSession: vi.fn(),
+    },
+  },
+}))
+
+// Mock auth context to prevent dependency issues
+vi.mock('../contexts/auth-context', () => ({
+  AuthProvider: ({ children }: { children: React.ReactNode }) => children,
+  useAuth: () => ({
+    user: null,
+    session: null,
+    loading: false,
+    signIn: mockSignInWithPassword,
+    signUp: mockSignUp,
+    signOut: mockSignOut,
+  }),
+}))
+
+// Mock localStorage
+const localStorageMock = {
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
+}
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock,
+})
+
+// Import React testing utilities and components AFTER mocks
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import App from '../App'
 import { SessionManager } from '../utils/session-manager'
-
-// Mock Supabase
-const mockSignInWithPassword = jest.fn()
-const mockSignUp = jest.fn()
-const mockSignOut = jest.fn()
-const mockGetSession = jest.fn()
-
-jest.mock('../lib/supabase', () => ({
-  supabase: {
-    auth: {
-      getSession: mockGetSession,
-      onAuthStateChange: jest.fn().mockReturnValue({
-        data: { subscription: { unsubscribe: jest.fn() } },
-      }),
-      signUp: mockSignUp,
-      signInWithPassword: mockSignInWithPassword,
-      signOut: mockSignOut,
-      refreshSession: jest.fn(),
-    },
-  },
-}))
-
-// Mock localStorage
-const localStorageMock = {
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-  clear: jest.fn(),
-}
-Object.defineProperty(window, 'localStorage', {
-  value: localStorageMock,
-})
 
 describe('Authentication Performance Tests', () => {
   const mockUser = {
@@ -55,7 +71,7 @@ describe('Authentication Performance Tests', () => {
   }
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     localStorageMock.getItem.mockReturnValue(null)
     mockGetSession.mockResolvedValue({
       data: { session: null },
@@ -258,7 +274,7 @@ describe('Authentication Performance Tests', () => {
 
   describe('Memory Usage and Cleanup', () => {
     it('should clean up event listeners on unmount', () => {
-      const removeEventListenerSpy = jest.spyOn(window, 'removeEventListener')
+      const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener')
 
       const { unmount } = render(
         <MemoryRouter initialEntries={['/login']}>
@@ -273,7 +289,7 @@ describe('Authentication Performance Tests', () => {
     })
 
     it('should clean up timers on unmount', () => {
-      const clearTimeoutSpy = jest.spyOn(global, 'clearTimeout')
+      const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout')
 
       const { unmount } = render(
         <MemoryRouter initialEntries={['/profile']}>

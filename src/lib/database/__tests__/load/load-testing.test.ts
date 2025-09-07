@@ -5,9 +5,9 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { DatabaseService } from '../../database-service';
 import { ProfileRepository } from '../../repositories/profile-repository';
 import { AnalysisRepository } from '../../repositories/analysis-repository';
-import { QueryOptimizer } from '../../query-optimizer';
+import { QueryOptimizer, QueryMetrics } from '../../query-optimizer';
 import { ConnectionManager } from '../../connection-manager';
-import { supabase } from '../../../supabase';
+import { supabase } from '../../../supabaseClient';
 
 // Mock Supabase for load testing
 vi.mock('../../../supabase', () => ({
@@ -166,9 +166,7 @@ describe('Database Load Testing', () => {
     });
 
     it('should handle large dataset queries with pagination', async () => {
-      const totalRecords = 10000;
       const pageSize = 100;
-      const totalPages = totalRecords / pageSize;
 
       const mockAnalyses = Array.from({ length: pageSize }, (_, i) => ({
         id: i + 1,
@@ -322,7 +320,6 @@ describe('Database Load Testing', () => {
       const executionTime = Date.now() - startTime;
 
       const successful = results.filter(r => r.status === 'fulfilled').length;
-      const failed = results.filter(r => r.status === 'rejected').length;
 
       // Most operations should succeed even under connection pressure
       expect(successful).toBeGreaterThan(concurrentConnections * 0.8); // At least 80% success
@@ -424,7 +421,7 @@ describe('Database Load Testing', () => {
       // Cached executions should be very fast
       expect(executionTime).toBeLessThan(100); // Should complete within 100ms
       
-      const metrics = QueryOptimizer.getMetrics(queryKey);
+      const metrics = QueryOptimizer.getMetrics(queryKey) as QueryMetrics;
       expect(metrics.cacheHits).toBe(100); // All should be cache hits
     });
   });

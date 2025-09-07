@@ -5,8 +5,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { DatabaseService } from '../../database-service';
 import { ProfileRepository } from '../../repositories/profile-repository';
 import { AnalysisRepository } from '../../repositories/analysis-repository';
-import { ValidationService } from '../../validation';
-import { supabase } from '../../../supabase';
+import { supabase } from '../../../supabaseClient';
 import { CreateAnalysisInput } from '../../../../types/database';
 
 // Mock Supabase for integrity testing
@@ -75,17 +74,6 @@ describe('Data Integrity Tests', () => {
         encrypted_google_api_key: null,
         created_at: '2024-01-01T00:00:00Z',
         updated_at: '2024-01-01T00:00:00Z',
-      };
-
-      const mockAnalysis = {
-        id: 1,
-        user_id: testUserId,
-        ticker_symbol: 'AAPL',
-        analysis_context: 'investment' as const,
-        synthesis_score: 85,
-        convergence_factors: [],
-        divergence_factors: [],
-        full_report: { summary: 'Test analysis' },
       };
 
       let callCount = 0;

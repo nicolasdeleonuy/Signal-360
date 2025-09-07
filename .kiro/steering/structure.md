@@ -1,61 +1,29 @@
-# Project Structure
+# Project Structure and Naming Conventions
 
-## Current Organization
-```
-.
-├── .kiro/
-│   └── steering/          # AI assistant steering rules
-├── .vscode/
-│   └── settings.json      # VSCode workspace settings
-├── public/
-│   └── index.html         # HTML template
-├── src/
-│   ├── components/
-│   │   └── protected-route.js  # Route protection component
-│   ├── contexts/
-│   │   └── auth-context.js     # Authentication context
-│   ├── lib/
-│   │   └── supabase.js         # Supabase client configuration
-│   ├── pages/
-│   │   ├── login.js            # Login page
-│   │   ├── sign-up.js          # Registration page
-│   │   └── profile.js          # Protected profile page
-│   ├── App.js             # Main app with routing
-│   ├── index.js           # App entry point
-│   └── index.css          # Global styles
-├── .env.example           # Environment variables template
-├── package.json           # Dependencies and scripts
-└── README.md             # Project documentation
-```
+This document outlines the file organization for the Signal-360 project. KIRO must place all new files in their designated directories.
 
-## Directory Conventions
-- **`src/components/`**: Reusable UI components and utilities
-- **`src/contexts/`**: React Context providers for global state
-- **`src/lib/`**: External service configurations and utilities
-- **`src/pages/`**: Route-level components (pages)
-- **`public/`**: Static assets and HTML template
-- **`.kiro/steering/`**: AI assistant guidance documents
+## Root Directories
+- `public/`: Static assets (images, fonts).
+- `src/`: Main application source code.
 
-## File Naming
-- Use kebab-case for multi-word files (e.g., `protected-route.js`)
-- Use PascalCase for React component files when they export a component
-- Keep filenames descriptive and concise
-- Configuration files follow their respective conventions
+## `src` Directory Structure
+- `src/assets/`: Project-specific static assets like images for components.
+- `src/components/`: Reusable React components.
+  - `src/components/auth/`: Components related to authentication (LoginForm, SignUpForm).
+  - `src/components/dashboard/`: Components for the main analysis dashboard.
+  - `src/components/ui/`: General-purpose UI elements (Buttons, Modals), likely managed by shadcn/ui.
+- `src/lib/`: Utility functions and third-party client initializations.
+  - `src/lib/supabaseClient.ts`: The file that initializes and exports the Supabase client instance.
+- `src/pages/`: Top-level route components corresponding to application views.
+  - `LoginPage.tsx`
+  - `SignUpPage.tsx`
+  - `ProfilePage.tsx`
+  - `DashboardPage.tsx`
+- `src/styles/`: Global CSS files.
+- `src/App.tsx`: The main application component that sets up routing.
+- `src/main.tsx`: The application entry point.
 
-## Component Organization
-- **Pages**: Top-level route components in `src/pages/`
-- **Components**: Reusable components in `src/components/`
-- **Contexts**: Global state providers in `src/contexts/`
-- **Utilities**: Helper functions and configurations in `src/lib/`
-
-## Authentication Architecture
-- **Context-based**: Authentication state managed via React Context
-- **Route Protection**: Higher-order component for protected routes
-- **Session Management**: Automatic session handling via Supabase
-- **Error Handling**: Comprehensive error states and user feedback
-
-## Maintenance
-- Keep components small and focused on single responsibility
-- Update steering rules as authentication patterns evolve
-- Document any new organizational patterns in this file
-- Maintain clear separation between public and protected routes
+## Naming Conventions
+- **Components & Pages**: `PascalCase` (e.g., `DashboardPage.tsx`).
+- **Functions & Variables**: `camelCase` (e.g., `fetchAnalysisData`).
+- **Types & Interfaces**: `PascalCase` (e.g., `interface TickerData`).

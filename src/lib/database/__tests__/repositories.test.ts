@@ -2,11 +2,11 @@
 // Tests repository pattern, query optimization, and performance
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { BaseRepository, PaginatedResult } from '../repositories/base-repository';
-import { ProfileRepository, ProfileStats } from '../repositories/profile-repository';
-import { AnalysisRepository, AnalysisStats } from '../repositories/analysis-repository';
+import { BaseRepository } from '../repositories/base-repository';
+import { ProfileRepository } from '../repositories/profile-repository';
+import { AnalysisRepository } from '../repositories/analysis-repository';
 import { QueryOptimizer } from '../query-optimizer';
-import { supabase } from '../../supabase';
+import { supabase } from '../../supabaseClient';
 import { Profile, Analysis, CreateAnalysisInput } from '../../../types/database';
 
 // Mock Supabase client

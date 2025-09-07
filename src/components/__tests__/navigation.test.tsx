@@ -1,13 +1,14 @@
-import React from 'react'
-import { render, screen, waitFor } from '@testing-library/react'
+// Migrated to Vitest
+import { render, screen } from '@testing-library/react'
+import { vi } from 'vitest'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { Navigation } from '../navigation'
 import { useAuth } from '../../contexts/auth-context'
 
 // Mock the auth context
-jest.mock('../../contexts/auth-context')
-const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>
+vi.mock('../../contexts/auth-context')
+const mockUseAuth = useAuth as vi.MockedFunction<typeof useAuth>
 
 function renderNavigation(initialEntries = ['/']) {
   return render(
@@ -18,10 +19,10 @@ function renderNavigation(initialEntries = ['/']) {
 }
 
 describe('Navigation', () => {
-  const mockSignOut = jest.fn()
+  const mockSignOut = vi.fn()
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('Unauthenticated Navigation', () => {
@@ -30,8 +31,8 @@ describe('Navigation', () => {
         user: null,
         session: null,
         loading: false,
-        signUp: jest.fn(),
-        signIn: jest.fn(),
+        signUp: vi.fn(),
+        signIn: vi.fn(),
         signOut: mockSignOut,
       })
     })
@@ -73,8 +74,8 @@ describe('Navigation', () => {
         user: mockUser as any,
         session: { user: mockUser } as any,
         loading: false,
-        signUp: jest.fn(),
-        signIn: jest.fn(),
+        signUp: vi.fn(),
+        signIn: vi.fn(),
         signOut: mockSignOut,
       })
     })
@@ -121,7 +122,7 @@ describe('Navigation', () => {
 
     it('should handle sign out errors gracefully', async () => {
       const user = userEvent.setup()
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
       mockSignOut.mockRejectedValue(new Error('Sign out failed'))
       renderNavigation()
 
@@ -141,9 +142,9 @@ describe('Navigation', () => {
         user: null,
         session: null,
         loading: false,
-        signUp: jest.fn(),
-        signIn: jest.fn(),
-        signOut: jest.fn(),
+        signUp: vi.fn(),
+        signIn: vi.fn(),
+        signOut: vi.fn(),
       })
 
       render(
@@ -162,9 +163,9 @@ describe('Navigation', () => {
         user: null,
         session: null,
         loading: false,
-        signUp: jest.fn(),
-        signIn: jest.fn(),
-        signOut: jest.fn(),
+        signUp: vi.fn(),
+        signIn: vi.fn(),
+        signOut: vi.fn(),
       })
 
       const { rerender } = renderNavigation()
@@ -183,9 +184,9 @@ describe('Navigation', () => {
         user: mockUser as any,
         session: { user: mockUser } as any,
         loading: false,
-        signUp: jest.fn(),
-        signIn: jest.fn(),
-        signOut: jest.fn(),
+        signUp: vi.fn(),
+        signIn: vi.fn(),
+        signOut: vi.fn(),
       })
 
       rerender(
@@ -205,9 +206,9 @@ describe('Navigation', () => {
         user: null,
         session: null,
         loading: false,
-        signUp: jest.fn(),
-        signIn: jest.fn(),
-        signOut: jest.fn(),
+        signUp: vi.fn(),
+        signIn: vi.fn(),
+        signOut: vi.fn(),
       })
 
       renderNavigation()

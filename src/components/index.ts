@@ -7,3 +7,11 @@ export { LoadingSpinner, default as LoadingSpinnerDefault } from './loading-spin
 export { ToastProvider, useToast, default as ToastProviderDefault } from './toast'
 export { NetworkErrorHandler, default as NetworkErrorHandlerDefault } from './network-error-handler'
 export { SessionExpiryWarning, default as SessionExpiryWarningDefault } from './session-expiry-warning'
+
+// Chart Components
+export { default as AnalysisChart } from './charts/AnalysisChart'
+export type { AnalysisChartProps, ChartDataPoint, ChartColorScheme } from './charts/AnalysisChart'
+
+// Search Components
+export { TickerSearch, default as TickerSearchDefault } from './search/TickerSearch'
+export type { TickerSearchProps, TickerSuggestion } from './search/TickerSearch'

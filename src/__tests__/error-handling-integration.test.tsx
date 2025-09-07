@@ -1,20 +1,19 @@
-import React from 'react'
-import { render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
-import App from '../App'
+import { vi } from 'vitest'
+
+// Hoisted mock variables - MUST be defined before vi.mock calls
+const mockSignInWithPassword = vi.hoisted(() => vi.fn())
+const mockSignUp = vi.hoisted(() => vi.fn())
+const mockSignOut = vi.hoisted(() => vi.fn())
+const mockGetSession = vi.hoisted(() => vi.fn())
+const mockOnAuthStateChange = vi.hoisted(() => vi.fn())
 
 // Mock Supabase
-const mockSignInWithPassword = jest.fn()
-const mockSignUp = jest.fn()
-const mockSignOut = jest.fn()
-
-jest.mock('../lib/supabase', () => ({
+vi.mock('../lib/supabase', () => ({
   supabase: {
     auth: {
-      getSession: jest.fn(),
-      onAuthStateChange: jest.fn().mockReturnValue({
-        data: { subscription: { unsubscribe: jest.fn() } },
+      getSession: mockGetSession,
+      onAuthStateChange: mockOnAuthStateChange.mockReturnValue({
+        data: { subscription: { unsubscribe: vi.fn() } },
       }),
       signUp: mockSignUp,
       signInWithPassword: mockSignInWithPassword,
@@ -23,7 +22,14 @@ jest.mock('../lib/supabase', () => ({
   },
 }))
 
-const { supabase } = require('../lib/supabase')
+// Import React testing utilities and components AFTER mocks
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
+import App from '../App'
+import { MockAuthCallback } from '../types/mocks'
+
+const { supabase } = await import('../lib/supabaseClient')
 
 // Mock navigator.onLine
 Object.defineProperty(navigator, 'onLine', {
@@ -33,19 +39,19 @@ Object.defineProperty(navigator, 'onLine', {
 
 describe('Error Handling Integration', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     // Suppress console.error for error boundary tests
-    jest.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(console, 'error').mockImplementation(() => {})
   })
 
   afterEach(() => {
-    jest.restoreAllMocks()
+    vi.restoreAllMocks()
   })
 
   it('should handle authentication errors with toast notifications', async () => {
     const user = userEvent.setup()
     
-    supabase.auth.getSession.mockResolvedValue({
+    mockGetSession.mockResolvedValue({
       data: { session: null },
       error: null,
     })
@@ -81,7 +87,7 @@ describe('Error Handling Integration', () => {
   })
 
   it('should handle network errors gracefully', async () => {
-    supabase.auth.getSession.mockRejectedValue(new Error('Network error'))
+    mockGetSession.mockRejectedValue(new Error('Network error'))
 
     render(
       <MemoryRouter initialEntries={['/login']}>
@@ -97,7 +103,7 @@ describe('Error Handling Integration', () => {
 
   it('should show loading states during authentication', async () => {
     // Mock slow authentication
-    supabase.auth.getSession.mockImplementation(
+    mockGetSession.mockImplementation(
       () => new Promise(resolve => setTimeout(() => resolve({
         data: { session: null },
         error: null,
@@ -121,10 +127,8 @@ describe('Error Handling Integration', () => {
 
   it('should handle component errors with error boundary', async () => {
     // Mock a component that throws an error
-    const OriginalProfilePage = require('../pages/profile').ProfilePage
-    
     // Temporarily replace ProfilePage with error-throwing component
-    jest.doMock('../pages/profile', () => ({
+    vi.doMock('../pages/profile', () => ({
       ProfilePage: () => {
         throw new Error('Component error')
       }
@@ -137,7 +141,7 @@ describe('Error Handling Integration', () => {
       last_sign_in_at: '2023-12-01T14:20:00Z',
     }
 
-    supabase.auth.getSession.mockResolvedValue({
+    mockGetSession.mockResolvedValue({
       data: { 
         session: {
           user: mockUser,
@@ -162,7 +166,7 @@ describe('Error Handling Integration', () => {
     expect(screen.getByRole('button', { name: 'Try Again' })).toBeInTheDocument()
 
     // Restore original component
-    jest.unmock('../pages/profile')
+    vi.unmock('../pages/profile')
   })
 
   it('should handle offline state', async () => {
@@ -176,7 +180,7 @@ describe('Error Handling Integration', () => {
     const offlineEvent = new Event('offline')
     window.dispatchEvent(offlineEvent)
 
-    supabase.auth.getSession.mockResolvedValue({
+    mockGetSession.mockResolvedValue({
       data: { session: null },
       error: null,
     })
@@ -209,16 +213,16 @@ describe('Error Handling Integration', () => {
   })
 
   it('should handle authentication state changes with proper error handling', async () => {
-    let authStateCallback: (event: string, session: any) => void
+    let authStateCallback: MockAuthCallback
 
-    supabase.auth.onAuthStateChange.mockImplementation((callback) => {
+    mockOnAuthStateChange.mockImplementation((callback: MockAuthCallback) => {
       authStateCallback = callback
       return {
-        data: { subscription: { unsubscribe: jest.fn() } },
+        data: { subscription: { unsubscribe: vi.fn() } },
       }
     })
 
-    supabase.auth.getSession.mockResolvedValue({
+    mockGetSession.mockResolvedValue({
       data: { session: null },
       error: null,
     })
@@ -246,7 +250,7 @@ describe('Error Handling Integration', () => {
   it('should maintain error handling across route changes', async () => {
     const user = userEvent.setup()
     
-    supabase.auth.getSession.mockResolvedValue({
+    mockGetSession.mockResolvedValue({
       data: { session: null },
       error: null,
     })
@@ -276,7 +280,7 @@ describe('Error Handling Integration', () => {
   it('should handle rapid error scenarios', async () => {
     const user = userEvent.setup()
     
-    supabase.auth.getSession.mockResolvedValue({
+    mockGetSession.mockResolvedValue({
       data: { session: null },
       error: null,
     })

@@ -5,7 +5,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { RLSEnforcer, SecurityOperation } from '../rls-enforcer';
 import { InputValidator } from '../input-validator';
 import { SecureQueryBuilder } from '../query-builder';
-import { supabase } from '../../../supabase';
+import { supabase } from '../../../supabaseClient';
 
 // Mock Supabase client
 vi.mock('../../../supabase', () => ({

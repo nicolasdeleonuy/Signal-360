@@ -1,28 +1,32 @@
-import React from 'react'
+// Migrated to Vitest
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
+import { vi } from 'vitest'
 import { LoginPage } from '../login'
 import { AuthProvider } from '../../contexts/auth-context'
 
 // Mock Supabase for integration tests
-const mockSignInWithPassword = jest.fn()
-jest.mock('../../lib/supabase', () => ({
+vi.mock('../../lib/supabase', () => ({
   supabase: {
     auth: {
-      getSession: jest.fn().mockResolvedValue({
+      getSession: vi.fn().mockResolvedValue({
         data: { session: null },
         error: null,
       }),
-      onAuthStateChange: jest.fn().mockReturnValue({
-        data: { subscription: { unsubscribe: jest.fn() } },
+      onAuthStateChange: vi.fn().mockReturnValue({
+        data: { subscription: { unsubscribe: vi.fn() } },
       }),
-      signUp: jest.fn(),
-      signInWithPassword: mockSignInWithPassword,
-      signOut: jest.fn(),
+      signUp: vi.fn(),
+      signInWithPassword: vi.fn(),
+      signOut: vi.fn(),
     },
   },
 }))
+
+// Import after mocking
+import { supabase } from '../../lib/supabaseClient'
+const mockSignInWithPassword = vi.mocked(supabase.auth.signInWithPassword)
 
 function TestApp({ initialEntries = ['/login'] }: { initialEntries?: any[] }) {
   return (
@@ -36,7 +40,7 @@ function TestApp({ initialEntries = ['/login'] }: { initialEntries?: any[] }) {
 
 describe('LoginPage Integration', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('should integrate with auth context for sign in', async () => {
@@ -53,7 +57,7 @@ describe('LoginPage Integration', () => {
 
     // Wait for auth to initialize
     await waitFor(() => {
-      expect(screen.getByText('Sign In')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Sign In' })).toBeInTheDocument()
     })
 
     const emailInput = screen.getByLabelText('Email Address')
@@ -86,7 +90,7 @@ describe('LoginPage Integration', () => {
     render(<TestApp />)
 
     await waitFor(() => {
-      expect(screen.getByText('Sign In')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Sign In' })).toBeInTheDocument()
     })
 
     const emailInput = screen.getByLabelText('Email Address')
@@ -109,7 +113,7 @@ describe('LoginPage Integration', () => {
     render(<TestApp />)
 
     await waitFor(() => {
-      expect(screen.getByText('Sign In')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Sign In' })).toBeInTheDocument()
     })
 
     const emailInput = screen.getByLabelText('Email Address')
@@ -130,7 +134,7 @@ describe('LoginPage Integration', () => {
     render(<TestApp />)
 
     await waitFor(() => {
-      expect(screen.getByText('Sign In')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Sign In' })).toBeInTheDocument()
     })
 
     const submitButton = screen.getByRole('button', { name: 'Sign In' })
@@ -167,23 +171,19 @@ describe('LoginPage Integration', () => {
     })
 
     // Mock auth state change to simulate successful login
-    let authStateCallback: (event: string, session: any) => void
-    jest.doMock('../../lib/supabase', () => ({
+    vi.doMock('../../lib/supabase', () => ({
       supabase: {
         auth: {
-          getSession: jest.fn().mockResolvedValue({
+          getSession: vi.fn().mockResolvedValue({
             data: { session: null },
             error: null,
           }),
-          onAuthStateChange: jest.fn().mockImplementation((callback) => {
-            authStateCallback = callback
-            return {
-              data: { subscription: { unsubscribe: jest.fn() } },
-            }
+          onAuthStateChange: vi.fn().mockReturnValue({
+            data: { subscription: { unsubscribe: vi.fn() } },
           }),
           signInWithPassword: mockSignInWithPassword,
-          signUp: jest.fn(),
-          signOut: jest.fn(),
+          signUp: vi.fn(),
+          signOut: vi.fn(),
         },
       },
     }))
@@ -191,7 +191,7 @@ describe('LoginPage Integration', () => {
     render(<TestApp />)
 
     await waitFor(() => {
-      expect(screen.getByText('Sign In')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Sign In' })).toBeInTheDocument()
     })
 
     const emailInput = screen.getByLabelText('Email Address')
@@ -210,16 +210,16 @@ describe('LoginPage Integration', () => {
 
   it('should show loading state during auth initialization', () => {
     // Mock loading state
-    jest.doMock('../../lib/supabase', () => ({
+    vi.doMock('../../lib/supabase', () => ({
       supabase: {
         auth: {
-          getSession: jest.fn().mockImplementation(() => new Promise(() => {})), // Never resolves
-          onAuthStateChange: jest.fn().mockReturnValue({
-            data: { subscription: { unsubscribe: jest.fn() } },
+          getSession: vi.fn().mockImplementation(() => new Promise(() => {})), // Never resolves
+          onAuthStateChange: vi.fn().mockReturnValue({
+            data: { subscription: { unsubscribe: vi.fn() } },
           }),
           signInWithPassword: mockSignInWithPassword,
-          signUp: jest.fn(),
-          signOut: jest.fn(),
+          signUp: vi.fn(),
+          signOut: vi.fn(),
         },
       },
     }))
@@ -227,6 +227,6 @@ describe('LoginPage Integration', () => {
     render(<TestApp />)
 
     expect(screen.getByText('Loading...')).toBeInTheDocument()
-    expect(screen.queryByText('Sign In')).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Sign In' })).not.toBeInTheDocument()
   })
 })

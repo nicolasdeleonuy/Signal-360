@@ -1,5 +1,6 @@
 import { SessionManager } from '../session-manager'
-import { supabase } from '../../lib/supabase'
+import { supabase } from '../../lib/supabaseClient'
+import { MockSupabaseClient } from '../../types/mocks'
 
 // Mock Supabase
 jest.mock('../../lib/supabase', () => ({
@@ -12,7 +13,7 @@ jest.mock('../../lib/supabase', () => ({
   },
 }))
 
-const mockSupabase = supabase as jest.Mocked<typeof supabase>
+const mockSupabase = supabase as unknown as MockSupabaseClient
 
 // Mock localStorage
 const localStorageMock = {
@@ -184,7 +185,7 @@ describe('SessionManager', () => {
       }
 
       mockSupabase.auth.refreshSession.mockResolvedValue({
-        data: { session: refreshedSession as any },
+        data: { user: null, session: refreshedSession as any },
         error: null,
       })
 
@@ -196,7 +197,7 @@ describe('SessionManager', () => {
 
     it('should handle refresh errors', async () => {
       mockSupabase.auth.refreshSession.mockResolvedValue({
-        data: { session: null },
+        data: { user: null, session: null },
         error: { message: 'Refresh failed' } as any,
       })
 

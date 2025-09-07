@@ -1,7 +1,7 @@
 // Profile management service for Signal-360
 // Handles CRUD operations for user profiles with encrypted API key storage
 
-import { supabase } from '../supabase';
+import { supabase } from '../supabaseClient';
 import { Profile, CreateProfileInput, UpdateProfileInput, DatabaseError } from '../../types/database';
 import { AdaptiveEncryptionService } from '../edge-functions/encryption';
 
