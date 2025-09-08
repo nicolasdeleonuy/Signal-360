@@ -1,5 +1,5 @@
 // Edge Function for ESG (Environmental, Social, Governance) analysis of stocks
-// Evaluates environmental, social, and governance factors for sustainable investing
+// AI-powered analysis using Google Gemini for real-time ESG and market sentiment evaluation
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import {
@@ -9,508 +9,52 @@ import {
   createErrorHttpResponse,
   AppError,
   ERROR_CODES,
-  getConfig,
-  withTimeout,
-  retryWithBackoff,
   ESGAnalysisInput,
   ESGAnalysisOutput,
-  AnalysisFactor
+  AnalysisFactor,
+  createLogger,
+  withRetryAndTimeout
 } from '../_shared/index.ts';
 
 /**
- * ESG data interfaces for external API responses
+ * ESG Analysis Engine using Google Gemini AI
  */
-interface ESGRating {
-  ticker: string;
-  companyName: string;
-  esgScore: number;
-  environmentalScore: number;
-  socialScore: number;
-  governanceScore: number;
-  esgRating: string; // AAA, AA, A, BBB, BB, B, CCC
-  industryRank: number;
-  industryPercentile: number;
-  lastUpdated: string;
-}
-
-interface EnvironmentalMetrics {
-  carbonEmissions: number;
-  carbonIntensity: number;
-  energyEfficiency: number;
-  renewableEnergy: number;
-  waterUsage: number;
-  wasteManagement: number;
-  biodiversityImpact: number;
-  environmentalControversies: number;
-}
-
-interface SocialMetrics {
-  humanRights: number;
-  laborStandards: number;
-  employeeSafety: number;
-  diversityInclusion: number;
-  communityRelations: number;
-  productSafety: number;
-  dataPrivacy: number;
-  socialControversies: number;
-}
-
-interface GovernanceMetrics {
-  boardComposition: number;
-  executiveCompensation: number;
-  shareholderRights: number;
-  businessEthics: number;
-  transparency: number;
-  riskManagement: number;
-  auditQuality: number;
-  governanceControversies: number;
-}
-
-interface SustainabilityMetrics {
-  sustainabilityReporting: boolean;
-  climateCommitments: boolean;
-  sustainabilityGoals: boolean;
-  greenFinancing: boolean;
-  circularEconomy: boolean;
-  stakeholderEngagement: number;
-  sustainabilityInnovation: number;
-  regulatoryCompliance: number;
-}
-
-interface CompanyProfile {
-  name: string;
-  sector: string;
-  industry: string;
-  country: string;
-  marketCap: number;
-  employees: number;
-  description: string;
-}
-
-/**
- * ESG data service for fetching sustainability data
- */
-class ESGDataService {
+class ESGAnalysisEngine {
   private apiKey: string;
-  private config: any;
+  private logger: any;
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
-    this.config = getConfig();
+    this.logger = createLogger('esg-analysis-engine');
   }
 
   /**
-   * Get ESG rating and scores
-   * @param ticker Stock ticker symbol
-   * @returns Promise<ESGRating> ESG rating data
+   * Perform AI-powered ESG and market sentiment analysis
    */
-  async getESGRating(ticker: string): Promise<ESGRating> {
-    // Note: This would typically use a specialized ESG data provider like MSCI, Sustainalytics, or Refinitiv
-    // For this implementation, we'll use Financial Modeling Prep's ESG data or simulate it
-    const url = `https://financialmodelingprep.com/api/v4/esg-environmental-social-governance-data?symbol=${ticker}&apikey=${this.apiKey}`;
-    
-    return await this.makeApiCall(url, (data) => {
-      if (!data || data.length === 0) {
-        // If no ESG data available, create estimated scores based on company profile
-        return this.generateEstimatedESGRating(ticker);
-      }
-      
-      const esgData = data[0];
-      return {
-        ticker,
-        companyName: esgData.companyName || 'Unknown',
-        esgScore: esgData.ESGScore || this.calculateCompositeScore(esgData),
-        environmentalScore: esgData.environmentalScore || 50,
-        socialScore: esgData.socialScore || 50,
-        governanceScore: esgData.governanceScore || 50,
-        esgRating: this.scoreToRating(esgData.ESGScore || 50),
-        industryRank: esgData.industryRank || 0,
-        industryPercentile: esgData.industryPercentile || 50,
-        lastUpdated: esgData.date || new Date().toISOString()
-      };
-    });
-  }
-
-  /**
-   * Get detailed environmental metrics
-   * @param ticker Stock ticker symbol
-   * @returns Promise<EnvironmentalMetrics> Environmental metrics
-   */
-  async getEnvironmentalMetrics(ticker: string): Promise<EnvironmentalMetrics> {
-    // This would typically fetch from specialized environmental data providers
-    // For now, we'll generate realistic estimates based on sector and size
-    const companyProfile = await this.getCompanyProfile(ticker);
-    
-    return this.generateEnvironmentalMetrics(companyProfile);
-  }
-
-  /**
-   * Get detailed social metrics
-   * @param ticker Stock ticker symbol
-   * @returns Promise<SocialMetrics> Social metrics
-   */
-  async getSocialMetrics(ticker: string): Promise<SocialMetrics> {
-    const companyProfile = await this.getCompanyProfile(ticker);
-    
-    return this.generateSocialMetrics(companyProfile);
-  }
-
-  /**
-   * Get detailed governance metrics
-   * @param ticker Stock ticker symbol
-   * @returns Promise<GovernanceMetrics> Governance metrics
-   */
-  async getGovernanceMetrics(ticker: string): Promise<GovernanceMetrics> {
-    const companyProfile = await this.getCompanyProfile(ticker);
-    
-    return this.generateGovernanceMetrics(companyProfile);
-  }
-
-  /**
-   * Get sustainability metrics and commitments
-   * @param ticker Stock ticker symbol
-   * @returns Promise<SustainabilityMetrics> Sustainability metrics
-   */
-  async getSustainabilityMetrics(ticker: string): Promise<SustainabilityMetrics> {
-    const companyProfile = await this.getCompanyProfile(ticker);
-    
-    return this.generateSustainabilityMetrics(companyProfile);
-  }
-
-  /**
-   * Get company profile for ESG context
-   * @param ticker Stock ticker symbol
-   * @returns Promise<CompanyProfile> Company profile
-   */
-  async getCompanyProfile(ticker: string): Promise<CompanyProfile> {
-    const url = `https://financialmodelingprep.com/api/v3/profile/${ticker}?apikey=${this.apiKey}`;
-    
-    return await this.makeApiCall(url, (data) => {
-      if (!data || data.length === 0) {
-        throw new Error('No company profile found');
-      }
-      
-      const profile = data[0];
-      return {
-        name: profile.companyName || 'Unknown',
-        sector: profile.sector || 'Unknown',
-        industry: profile.industry || 'Unknown',
-        country: profile.country || 'Unknown',
-        marketCap: profile.mktCap || 0,
-        employees: profile.fullTimeEmployees || 0,
-        description: profile.description || ''
-      };
-    });
-  }
-
-  /**
-   * Generate estimated ESG rating when real data is unavailable
-   */
-  private generateEstimatedESGRating(ticker: string): ESGRating {
-    // Generate realistic ESG scores based on common patterns
-    const baseScore = 45 + Math.random() * 30; // 45-75 range
-    const environmentalScore = Math.max(20, Math.min(80, baseScore + (Math.random() - 0.5) * 20));
-    const socialScore = Math.max(20, Math.min(80, baseScore + (Math.random() - 0.5) * 20));
-    const governanceScore = Math.max(20, Math.min(80, baseScore + (Math.random() - 0.5) * 20));
-    const esgScore = (environmentalScore + socialScore + governanceScore) / 3;
-    
-    return {
-      ticker,
-      companyName: 'Unknown Company',
-      esgScore: Math.round(esgScore),
-      environmentalScore: Math.round(environmentalScore),
-      socialScore: Math.round(socialScore),
-      governanceScore: Math.round(governanceScore),
-      esgRating: this.scoreToRating(esgScore),
-      industryRank: 0,
-      industryPercentile: Math.round(esgScore * 1.2), // Rough conversion
-      lastUpdated: new Date().toISOString()
-    };
-  }
-
-  /**
-   * Generate environmental metrics based on company profile
-   */
-  private generateEnvironmentalMetrics(profile: CompanyProfile): EnvironmentalMetrics {
-    // Adjust scores based on sector (tech companies generally score higher)
-    const sectorMultiplier = this.getSectorEnvironmentalMultiplier(profile.sector);
-    const baseScore = 40 + Math.random() * 30;
-    
-    return {
-      carbonEmissions: Math.round((baseScore + Math.random() * 20) * sectorMultiplier),
-      carbonIntensity: Math.round((baseScore + Math.random() * 20) * sectorMultiplier),
-      energyEfficiency: Math.round((baseScore + Math.random() * 25) * sectorMultiplier),
-      renewableEnergy: Math.round((baseScore + Math.random() * 30) * sectorMultiplier),
-      waterUsage: Math.round((baseScore + Math.random() * 20) * sectorMultiplier),
-      wasteManagement: Math.round((baseScore + Math.random() * 25) * sectorMultiplier),
-      biodiversityImpact: Math.round((baseScore + Math.random() * 20) * sectorMultiplier),
-      environmentalControversies: Math.max(0, Math.round((20 - Math.random() * 15) / sectorMultiplier))
-    };
-  }
-
-  /**
-   * Generate social metrics based on company profile
-   */
-  private generateSocialMetrics(profile: CompanyProfile): SocialMetrics {
-    const sectorMultiplier = this.getSectorSocialMultiplier(profile.sector);
-    const sizeMultiplier = profile.marketCap > 10000000000 ? 1.1 : 0.9; // Large companies often score higher
-    const baseScore = 45 + Math.random() * 25;
-    
-    return {
-      humanRights: Math.round((baseScore + Math.random() * 20) * sectorMultiplier * sizeMultiplier),
-      laborStandards: Math.round((baseScore + Math.random() * 25) * sectorMultiplier * sizeMultiplier),
-      employeeSafety: Math.round((baseScore + Math.random() * 30) * sectorMultiplier),
-      diversityInclusion: Math.round((baseScore + Math.random() * 25) * sectorMultiplier * sizeMultiplier),
-      communityRelations: Math.round((baseScore + Math.random() * 20) * sectorMultiplier),
-      productSafety: Math.round((baseScore + Math.random() * 25) * sectorMultiplier),
-      dataPrivacy: Math.round((baseScore + Math.random() * 30) * sectorMultiplier),
-      socialControversies: Math.max(0, Math.round((15 - Math.random() * 10) / sectorMultiplier))
-    };
-  }
-
-  /**
-   * Generate governance metrics based on company profile
-   */
-  private generateGovernanceMetrics(profile: CompanyProfile): GovernanceMetrics {
-    const sizeMultiplier = profile.marketCap > 50000000000 ? 1.2 : 0.9; // Very large companies often have better governance
-    const countryMultiplier = this.getCountryGovernanceMultiplier(profile.country);
-    const baseScore = 50 + Math.random() * 25;
-    
-    return {
-      boardComposition: Math.round((baseScore + Math.random() * 20) * sizeMultiplier * countryMultiplier),
-      executiveCompensation: Math.round((baseScore + Math.random() * 25) * sizeMultiplier * countryMultiplier),
-      shareholderRights: Math.round((baseScore + Math.random() * 20) * countryMultiplier),
-      businessEthics: Math.round((baseScore + Math.random() * 25) * sizeMultiplier * countryMultiplier),
-      transparency: Math.round((baseScore + Math.random() * 30) * sizeMultiplier * countryMultiplier),
-      riskManagement: Math.round((baseScore + Math.random() * 25) * sizeMultiplier),
-      auditQuality: Math.round((baseScore + Math.random() * 20) * sizeMultiplier * countryMultiplier),
-      governanceControversies: Math.max(0, Math.round((10 - Math.random() * 8) / (sizeMultiplier * countryMultiplier)))
-    };
-  }
-
-  /**
-   * Generate sustainability metrics based on company profile
-   */
-  private generateSustainabilityMetrics(profile: CompanyProfile): SustainabilityMetrics {
-    const sectorMultiplier = this.getSectorSustainabilityMultiplier(profile.sector);
-    const sizeMultiplier = profile.marketCap > 10000000000 ? 1.15 : 0.85;
-    const baseScore = 45 + Math.random() * 30;
-    
-    return {
-      sustainabilityReporting: Math.random() > (0.3 / sizeMultiplier),
-      climateCommitments: Math.random() > (0.4 / sectorMultiplier),
-      sustainabilityGoals: Math.random() > (0.35 / sizeMultiplier),
-      greenFinancing: Math.random() > (0.6 / sectorMultiplier),
-      circularEconomy: Math.random() > (0.7 / sectorMultiplier),
-      stakeholderEngagement: Math.round((baseScore + Math.random() * 25) * sizeMultiplier),
-      sustainabilityInnovation: Math.round((baseScore + Math.random() * 30) * sectorMultiplier),
-      regulatoryCompliance: Math.round((baseScore + Math.random() * 20) * sizeMultiplier)
-    };
-  }
-
-  /**
-   * Helper methods for sector-based adjustments
-   */
-  private getSectorEnvironmentalMultiplier(sector: string): number {
-    const multipliers: Record<string, number> = {
-      'Technology': 1.2,
-      'Healthcare': 1.1,
-      'Financial Services': 1.15,
-      'Consumer Cyclical': 0.9,
-      'Energy': 0.7,
-      'Utilities': 0.8,
-      'Materials': 0.75,
-      'Industrials': 0.85,
-      'Real Estate': 0.9,
-      'Consumer Defensive': 1.0
-    };
-    return multipliers[sector] || 1.0;
-  }
-
-  private getSectorSocialMultiplier(sector: string): number {
-    const multipliers: Record<string, number> = {
-      'Technology': 1.1,
-      'Healthcare': 1.2,
-      'Financial Services': 1.0,
-      'Consumer Cyclical': 0.95,
-      'Energy': 0.85,
-      'Utilities': 1.0,
-      'Materials': 0.9,
-      'Industrials': 0.95,
-      'Real Estate': 1.0,
-      'Consumer Defensive': 1.05
-    };
-    return multipliers[sector] || 1.0;
-  }
-
-  private getSectorSustainabilityMultiplier(sector: string): number {
-    const multipliers: Record<string, number> = {
-      'Technology': 1.25,
-      'Healthcare': 1.1,
-      'Financial Services': 1.05,
-      'Consumer Cyclical': 0.9,
-      'Energy': 0.8,
-      'Utilities': 1.0,
-      'Materials': 0.85,
-      'Industrials': 0.9,
-      'Real Estate': 0.95,
-      'Consumer Defensive': 1.0
-    };
-    return multipliers[sector] || 1.0;
-  }
-
-  private getCountryGovernanceMultiplier(country: string): number {
-    const multipliers: Record<string, number> = {
-      'United States': 1.1,
-      'Canada': 1.15,
-      'United Kingdom': 1.1,
-      'Germany': 1.2,
-      'France': 1.1,
-      'Japan': 1.05,
-      'Australia': 1.15,
-      'Netherlands': 1.2,
-      'Switzerland': 1.25,
-      'Sweden': 1.2
-    };
-    return multipliers[country] || 1.0;
-  }
-
-  /**
-   * Convert ESG score to letter rating
-   */
-  private scoreToRating(score: number): string {
-    if (score >= 80) return 'AAA';
-    if (score >= 70) return 'AA';
-    if (score >= 60) return 'A';
-    if (score >= 50) return 'BBB';
-    if (score >= 40) return 'BB';
-    if (score >= 30) return 'B';
-    return 'CCC';
-  }
-
-  /**
-   * Calculate composite ESG score from individual components
-   */
-  private calculateCompositeScore(data: any): number {
-    const env = data.environmentalScore || 50;
-    const social = data.socialScore || 50;
-    const governance = data.governanceScore || 50;
-    return Math.round((env + social + governance) / 3);
-  }
-
-  /**
-   * Make API call with retry logic and error handling
-   */
-  private async makeApiCall<T>(url: string, transformer: (data: any) => T): Promise<T> {
-    return await retryWithBackoff(async () => {
-      const response = await withTimeout(
-        fetch(url, {
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'Signal-360/1.0'
-          }
-        }),
-        this.config.external.apiTimeout,
-        'External API request timed out'
-      );
-
-      if (!response.ok) {
-        if (response.status === 429) {
-          const retryAfter = parseInt(response.headers.get('Retry-After') || '60');
-          throw new AppError(
-            ERROR_CODES.RATE_LIMIT_EXCEEDED,
-            'API rate limit exceeded',
-            `Retry after ${retryAfter} seconds`,
-            retryAfter
-          );
-        }
-        
-        throw new AppError(
-          ERROR_CODES.EXTERNAL_API_ERROR,
-          `External API error: ${response.status} ${response.statusText}`
-        );
-      }
-
-      const data = await response.json();
-      return transformer(data);
-    }, this.config.external.maxRetries);
-  }
-}
-
-/**
- * ESG analysis engine
- */
-class ESGAnalysisEngine {
-  /**
-   * Perform comprehensive ESG analysis
-   * @param ticker Stock ticker symbol
-   * @param apiKey API key for external calls
-   * @param analysisContext Investment or trading context
-   * @returns Promise<ESGAnalysisOutput> Analysis results
-   */
-  static async analyze(
-    ticker: string,
-    apiKey: string,
-    analysisContext: 'investment' | 'trading'
-  ): Promise<ESGAnalysisOutput> {
-    const dataService = new ESGDataService(apiKey);
-
+  async analyze(ticker_symbol: string, analysis_context: 'investment' | 'trading'): Promise<ESGAnalysisOutput> {
     try {
-      // Fetch all ESG data in parallel
-      const [esgRating, environmentalMetrics, socialMetrics, governanceMetrics, sustainabilityMetrics] = 
-        await Promise.all([
-          dataService.getESGRating(ticker),
-          dataService.getEnvironmentalMetrics(ticker),
-          dataService.getSocialMetrics(ticker),
-          dataService.getGovernanceMetrics(ticker),
-          dataService.getSustainabilityMetrics(ticker)
-        ]);
+      this.logger.info(`Starting AI-powered ESG analysis for ${ticker_symbol} (${analysis_context})`);
 
-      // Generate analysis factors
-      const factors = this.generateAnalysisFactors(
-        esgRating,
-        environmentalMetrics,
-        socialMetrics,
-        governanceMetrics,
-        sustainabilityMetrics,
-        analysisContext
-      );
+      // Construct detailed prompt for Gemini AI
+      const prompt = this.buildAnalysisPrompt(ticker_symbol, analysis_context);
 
-      // Calculate overall ESG score
-      const score = this.calculateOverallScore(
-        esgRating,
-        environmentalMetrics,
-        socialMetrics,
-        governanceMetrics,
-        sustainabilityMetrics,
-        analysisContext
-      );
-      
-      // Calculate confidence based on data availability and quality
-      const confidence = this.calculateConfidence(esgRating, sustainabilityMetrics);
+      // Make API call to Google Gemini
+      const geminiResponse = await this.callGeminiAPI(prompt);
 
-      return {
-        score,
-        factors,
-        details: {
-          environmental_score: esgRating.environmentalScore,
-          social_score: esgRating.socialScore,
-          governance_score: esgRating.governanceScore,
-          sustainability_metrics: {
-            sustainability_reporting: sustainabilityMetrics.sustainabilityReporting ? 100 : 0,
-            climate_commitments: sustainabilityMetrics.climateCommitments ? 100 : 0,
-            stakeholder_engagement: sustainabilityMetrics.stakeholderEngagement,
-            sustainability_innovation: sustainabilityMetrics.sustainabilityInnovation,
-            regulatory_compliance: sustainabilityMetrics.regulatoryCompliance,
-            environmental_controversies: environmentalMetrics.environmentalControversies,
-            social_controversies: socialMetrics.socialControversies,
-            governance_controversies: governanceMetrics.governanceControversies
-          }
-        },
-        confidence
-      };
+      // Parse and validate the JSON response
+      const analysisResult = this.parseGeminiResponse(geminiResponse);
+
+      this.logger.info(`ESG analysis completed for ${ticker_symbol}`, {
+        score: analysisResult.score,
+        factorsCount: analysisResult.factors.length,
+        confidence: analysisResult.confidence
+      });
+
+      return analysisResult;
 
     } catch (error) {
+      this.logger.error(`ESG analysis failed for ${ticker_symbol}:`, error);
+      
       if (error instanceof AppError) {
         throw error;
       }
@@ -524,218 +68,328 @@ class ESGAnalysisEngine {
   }
 
   /**
-   * Generate analysis factors based on ESG metrics
+   * Build comprehensive analysis prompt for Gemini AI
    */
-  private static generateAnalysisFactors(
-    esgRating: ESGRating,
-    environmentalMetrics: EnvironmentalMetrics,
-    socialMetrics: SocialMetrics,
-    governanceMetrics: GovernanceMetrics,
-    sustainabilityMetrics: SustainabilityMetrics,
-    analysisContext: 'investment' | 'trading'
-  ): AnalysisFactor[] {
-    const factors: AnalysisFactor[] = [];
+  private buildAnalysisPrompt(ticker_symbol: string, analysis_context: string): string {
+    const jsonSchema = {
+      type: "object",
+      properties: {
+        score: {
+          type: "number",
+          minimum: 0,
+          maximum: 100,
+          description: "Overall ESG score from 0-100"
+        },
+        factors: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              category: {
+                type: "string",
+                enum: ["esg"],
+                description: "Must be 'esg'"
+              },
+              type: {
+                type: "string",
+                enum: ["positive", "negative"],
+                description: "Whether this factor is positive or negative"
+              },
+              description: {
+                type: "string",
+                description: "Clear description of the ESG factor"
+              },
+              weight: {
+                type: "number",
+                minimum: 0,
+                maximum: 1,
+                description: "Importance weight from 0-1"
+              },
+              confidence: {
+                type: "number",
+                minimum: 0,
+                maximum: 1,
+                description: "Confidence level from 0-1"
+              }
+            },
+            required: ["category", "type", "description", "weight", "confidence"]
+          }
+        },
+        details: {
+          type: "object",
+          properties: {
+            environmental_score: {
+              type: "number",
+              minimum: 0,
+              maximum: 100,
+              description: "Environmental pillar score"
+            },
+            social_score: {
+              type: "number",
+              minimum: 0,
+              maximum: 100,
+              description: "Social pillar score"
+            },
+            governance_score: {
+              type: "number",
+              minimum: 0,
+              maximum: 100,
+              description: "Governance pillar score"
+            },
+            sustainability_metrics: {
+              type: "object",
+              description: "Various sustainability metrics as numbers"
+            }
+          },
+          required: ["environmental_score", "social_score", "governance_score", "sustainability_metrics"]
+        },
+        confidence: {
+          type: "number",
+          minimum: 0,
+          maximum: 1,
+          description: "Overall analysis confidence from 0-1"
+        }
+      },
+      required: ["score", "factors", "details", "confidence"]
+    };
 
-    // Overall ESG rating factors
-    if (esgRating.esgScore >= 70) {
-      factors.push({
-        category: 'esg',
-        type: 'positive',
-        description: `Strong ESG rating of ${esgRating.esgRating} (${esgRating.esgScore}/100)`,
-        weight: analysisContext === 'investment' ? 0.9 : 0.6,
-        confidence: 0.8
-      });
-    } else if (esgRating.esgScore <= 40) {
-      factors.push({
-        category: 'esg',
-        type: 'negative',
-        description: `Poor ESG rating of ${esgRating.esgRating} (${esgRating.esgScore}/100)`,
-        weight: analysisContext === 'investment' ? 0.8 : 0.5,
-        confidence: 0.8
-      });
-    }
+    return `You are an expert ESG and Market Sentiment Analyst. Your task is to perform a comprehensive analysis of ${ticker_symbol} for ${analysis_context} purposes.
 
-    // Environmental factors
-    if (environmentalMetrics.renewableEnergy >= 70) {
-      factors.push({
-        category: 'esg',
-        type: 'positive',
-        description: `High renewable energy adoption (${environmentalMetrics.renewableEnergy}/100)`,
-        weight: 0.7,
-        confidence: 0.7
-      });
-    }
+INSTRUCTIONS:
+1. Use your internal search capabilities to find recent information about ${ticker_symbol} including:
+   - Recent news and press releases
+   - Sustainability reports and ESG disclosures
+   - Environmental initiatives and carbon footprint data
+   - Social impact programs and diversity metrics
+   - Governance structure and board composition
+   - Recent controversies or positive developments
+   - Market sentiment and analyst opinions
+   - Regulatory compliance and legal issues
 
-    if (environmentalMetrics.carbonEmissions >= 70) {
-      factors.push({
-        category: 'esg',
-        type: 'positive',
-        description: `Good carbon emissions management (${environmentalMetrics.carbonEmissions}/100)`,
-        weight: 0.8,
-        confidence: 0.7
-      });
-    }
+2. Analyze the company across three ESG pillars:
+   - ENVIRONMENTAL: Climate impact, carbon emissions, renewable energy, waste management, water usage, biodiversity
+   - SOCIAL: Employee relations, diversity & inclusion, community impact, product safety, human rights, labor practices
+   - GOVERNANCE: Board structure, executive compensation, shareholder rights, transparency, ethics, risk management
 
-    if (environmentalMetrics.environmentalControversies > 5) {
-      factors.push({
-        category: 'esg',
-        type: 'negative',
-        description: `Environmental controversies detected (${environmentalMetrics.environmentalControversies} issues)`,
-        weight: 0.8,
-        confidence: 0.9
-      });
-    }
+3. Consider the analysis context:
+   - For "investment": Focus on long-term ESG risks and opportunities, regulatory trends, sustainable competitive advantages
+   - For "trading": Include short-term sentiment impacts, ESG-related news flow, regulatory announcements, activist campaigns
 
-    // Social factors
-    if (socialMetrics.diversityInclusion >= 70) {
-      factors.push({
-        category: 'esg',
-        type: 'positive',
-        description: `Strong diversity and inclusion practices (${socialMetrics.diversityInclusion}/100)`,
-        weight: 0.6,
-        confidence: 0.7
-      });
-    }
+4. Return your complete analysis in this EXACT JSON format:
 
-    if (socialMetrics.employeeSafety >= 75) {
-      factors.push({
-        category: 'esg',
-        type: 'positive',
-        description: `Excellent employee safety record (${socialMetrics.employeeSafety}/100)`,
-        weight: 0.7,
-        confidence: 0.8
-      });
-    }
+${JSON.stringify(jsonSchema, null, 2)}
 
-    if (socialMetrics.socialControversies > 3) {
-      factors.push({
-        category: 'esg',
-        type: 'negative',
-        description: `Social controversies detected (${socialMetrics.socialControversies} issues)`,
-        weight: 0.7,
-        confidence: 0.9
-      });
-    }
+CRITICAL REQUIREMENTS:
+- Provide 5-8 specific, actionable factors with clear descriptions
+- Environmental, social, and governance scores should reflect real research findings
+- Overall score should be a weighted average considering all three pillars
+- Include specific metrics in sustainability_metrics (use realistic numbers)
+- Confidence should reflect data availability and recency
+- All scores must be realistic and well-justified
+- Focus on factual, research-based analysis
 
-    // Governance factors
-    if (governanceMetrics.boardComposition >= 70 && governanceMetrics.transparency >= 70) {
-      factors.push({
-        category: 'esg',
-        type: 'positive',
-        description: 'Strong board composition and transparency practices',
-        weight: 0.8,
-        confidence: 0.8
-      });
-    }
-
-    if (governanceMetrics.businessEthics >= 75) {
-      factors.push({
-        category: 'esg',
-        type: 'positive',
-        description: `High business ethics standards (${governanceMetrics.businessEthics}/100)`,
-        weight: 0.7,
-        confidence: 0.8
-      });
-    }
-
-    if (governanceMetrics.governanceControversies > 2) {
-      factors.push({
-        category: 'esg',
-        type: 'negative',
-        description: `Governance controversies detected (${governanceMetrics.governanceControversies} issues)`,
-        weight: 0.9,
-        confidence: 0.9
-      });
-    }
-
-    // Sustainability commitment factors
-    if (sustainabilityMetrics.sustainabilityReporting && sustainabilityMetrics.climateCommitments) {
-      factors.push({
-        category: 'esg',
-        type: 'positive',
-        description: 'Comprehensive sustainability reporting and climate commitments',
-        weight: 0.6,
-        confidence: 0.8
-      });
-    }
-
-    if (sustainabilityMetrics.sustainabilityInnovation >= 70) {
-      factors.push({
-        category: 'esg',
-        type: 'positive',
-        description: `Strong sustainability innovation (${sustainabilityMetrics.sustainabilityInnovation}/100)`,
-        weight: 0.6,
-        confidence: 0.7
-      });
-    }
-
-    return factors;
+Return ONLY the JSON response, no additional text or formatting.`;
   }
 
   /**
-   * Calculate overall ESG score
+   * Make API call to Google Gemini
    */
-  private static calculateOverallScore(
-    esgRating: ESGRating,
-    environmentalMetrics: EnvironmentalMetrics,
-    socialMetrics: SocialMetrics,
-    governanceMetrics: GovernanceMetrics,
-    sustainabilityMetrics: SustainabilityMetrics,
-    analysisContext: 'investment' | 'trading'
-  ): number {
-    // Base score from ESG rating
-    let score = esgRating.esgScore;
+  private async callGeminiAPI(prompt: string): Promise<any> {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.apiKey}`;
 
-    // Adjust for controversies (negative impact)
-    const totalControversies = environmentalMetrics.environmentalControversies + 
-                              socialMetrics.socialControversies + 
-                              governanceMetrics.governanceControversies;
-    
-    score -= Math.min(20, totalControversies * 2); // Max 20 point deduction
+    const requestBody = {
+      contents: [{
+        parts: [{
+          text: prompt
+        }]
+      }],
+      generationConfig: {
+        temperature: 0.1,
+        topK: 1,
+        topP: 0.8,
+        maxOutputTokens: 2048,
+      },
+      safetySettings: [
+        {
+          category: "HARM_CATEGORY_HARASSMENT",
+          threshold: "BLOCK_MEDIUM_AND_ABOVE"
+        },
+        {
+          category: "HARM_CATEGORY_HATE_SPEECH",
+          threshold: "BLOCK_MEDIUM_AND_ABOVE"
+        },
+        {
+          category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+          threshold: "BLOCK_MEDIUM_AND_ABOVE"
+        },
+        {
+          category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+          threshold: "BLOCK_MEDIUM_AND_ABOVE"
+        }
+      ]
+    };
 
-    // Adjust for sustainability commitments (positive impact)
-    let sustainabilityBonus = 0;
-    if (sustainabilityMetrics.sustainabilityReporting) sustainabilityBonus += 3;
-    if (sustainabilityMetrics.climateCommitments) sustainabilityBonus += 4;
-    if (sustainabilityMetrics.sustainabilityGoals) sustainabilityBonus += 3;
-    if (sustainabilityMetrics.greenFinancing) sustainabilityBonus += 2;
-    
-    score += sustainabilityBonus;
+    return await withRetryAndTimeout(
+      async () => {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': 'Signal-360/1.0'
+          },
+          body: JSON.stringify(requestBody)
+        });
 
-    // Adjust for analysis context
-    if (analysisContext === 'trading') {
-      // ESG is less critical for short-term trading
-      score = score * 0.8 + 20; // Compress range and add base
-    }
+        if (!response.ok) {
+          if (response.status === 429) {
+            throw new AppError(
+              ERROR_CODES.RATE_LIMIT_EXCEEDED,
+              'Google Gemini API rate limit exceeded',
+              'Please try again later'
+            );
+          }
+          
+          if (response.status === 401 || response.status === 403) {
+            throw new AppError(
+              ERROR_CODES.INVALID_API_KEY,
+              'Invalid or expired Google API key',
+              'Please update your API key in profile settings'
+            );
+          }
 
-    return Math.round(Math.max(0, Math.min(100, score)));
+          const errorText = await response.text();
+          throw new AppError(
+            ERROR_CODES.EXTERNAL_API_ERROR,
+            `Gemini API error: ${response.status} ${response.statusText}`,
+            errorText
+          );
+        }
+
+        return await response.json();
+      },
+      30000, // 30 second timeout
+      {
+        maxAttempts: 3,
+        baseDelay: 1000,
+        maxDelay: 5000,
+        backoffMultiplier: 2,
+        jitter: true
+      },
+      'Gemini API request'
+    );
   }
 
   /**
-   * Calculate confidence based on data availability and quality
+   * Parse and validate Gemini API response
    */
-  private static calculateConfidence(
-    esgRating: ESGRating,
-    sustainabilityMetrics: SustainabilityMetrics
-  ): number {
-    let confidence = 0.8; // Base confidence
+  private parseGeminiResponse(geminiResponse: any): ESGAnalysisOutput {
+    try {
+      // Extract the generated text from Gemini response
+      if (!geminiResponse.candidates || geminiResponse.candidates.length === 0) {
+        throw new Error('No response candidates from Gemini API');
+      }
 
-    // Increase confidence if we have recent data
-    const dataAge = Date.now() - new Date(esgRating.lastUpdated).getTime();
-    const daysOld = dataAge / (1000 * 60 * 60 * 24);
-    
-    if (daysOld > 365) confidence *= 0.7; // Old data
-    else if (daysOld > 180) confidence *= 0.8;
-    else if (daysOld < 90) confidence *= 1.1; // Recent data
+      const candidate = geminiResponse.candidates[0];
+      if (!candidate.content || !candidate.content.parts || candidate.content.parts.length === 0) {
+        throw new Error('No content in Gemini API response');
+      }
 
-    // Increase confidence if company has good sustainability reporting
-    if (sustainabilityMetrics.sustainabilityReporting) confidence *= 1.1;
-    if (sustainabilityMetrics.climateCommitments) confidence *= 1.05;
+      const generatedText = candidate.content.parts[0].text;
+      if (!generatedText) {
+        throw new Error('Empty response from Gemini API');
+      }
 
-    // Decrease confidence for estimated data (when industry rank is 0)
-    if (esgRating.industryRank === 0) confidence *= 0.6;
+      // Parse JSON from the generated text
+      let analysisData;
+      try {
+        // Clean the response text (remove any markdown formatting)
+        const cleanedText = generatedText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        analysisData = JSON.parse(cleanedText);
+      } catch (parseError) {
+        this.logger.error('Failed to parse Gemini JSON response:', { generatedText, parseError });
+        throw new Error(`Invalid JSON response from Gemini API: ${parseError.message}`);
+      }
 
-    return Math.max(0.1, Math.min(1.0, confidence));
+      // Validate the structure matches ESGAnalysisOutput
+      this.validateAnalysisOutput(analysisData);
+
+      return analysisData as ESGAnalysisOutput;
+
+    } catch (error) {
+      this.logger.error('Failed to parse Gemini response:', error);
+      throw new AppError(
+        ERROR_CODES.PROCESSING_ERROR,
+        'Failed to parse AI analysis response',
+        error instanceof Error ? error.message : String(error)
+      );
+    }
+  }
+
+  /**
+   * Validate the analysis output structure
+   */
+  private validateAnalysisOutput(data: any): void {
+    if (typeof data !== 'object' || data === null) {
+      throw new Error('Analysis output must be an object');
+    }
+
+    // Validate required fields
+    if (typeof data.score !== 'number' || data.score < 0 || data.score > 100) {
+      throw new Error('Score must be a number between 0 and 100');
+    }
+
+    if (!Array.isArray(data.factors)) {
+      throw new Error('Factors must be an array');
+    }
+
+    if (typeof data.confidence !== 'number' || data.confidence < 0 || data.confidence > 1) {
+      throw new Error('Confidence must be a number between 0 and 1');
+    }
+
+    if (!data.details || typeof data.details !== 'object') {
+      throw new Error('Details must be an object');
+    }
+
+    // Validate details structure
+    const details = data.details;
+    if (typeof details.environmental_score !== 'number' || details.environmental_score < 0 || details.environmental_score > 100) {
+      throw new Error('Environmental score must be a number between 0 and 100');
+    }
+
+    if (typeof details.social_score !== 'number' || details.social_score < 0 || details.social_score > 100) {
+      throw new Error('Social score must be a number between 0 and 100');
+    }
+
+    if (typeof details.governance_score !== 'number' || details.governance_score < 0 || details.governance_score > 100) {
+      throw new Error('Governance score must be a number between 0 and 100');
+    }
+
+    if (!details.sustainability_metrics || typeof details.sustainability_metrics !== 'object') {
+      throw new Error('Sustainability metrics must be an object');
+    }
+
+    // Validate factors
+    for (const factor of data.factors) {
+      if (factor.category !== 'esg') {
+        throw new Error('All factors must have category "esg"');
+      }
+
+      if (!['positive', 'negative'].includes(factor.type)) {
+        throw new Error('Factor type must be "positive" or "negative"');
+      }
+
+      if (typeof factor.description !== 'string' || factor.description.length === 0) {
+        throw new Error('Factor description must be a non-empty string');
+      }
+
+      if (typeof factor.weight !== 'number' || factor.weight < 0 || factor.weight > 1) {
+        throw new Error('Factor weight must be a number between 0 and 1');
+      }
+
+      if (typeof factor.confidence !== 'number' || factor.confidence < 0 || factor.confidence > 1) {
+        throw new Error('Factor confidence must be a number between 0 and 1');
+      }
+    }
   }
 }
 
@@ -773,7 +427,7 @@ const handleESGAnalysis = async (request: Request, requestId: string): Promise<R
       );
     }
 
-    // Validate API key format
+    // Validate API key format (Google API keys start with AIza)
     if (!/^AIza[0-9A-Za-z-_]{35}$/.test(api_key)) {
       throw new AppError(
         ERROR_CODES.INVALID_API_KEY,
@@ -781,14 +435,11 @@ const handleESGAnalysis = async (request: Request, requestId: string): Promise<R
       );
     }
 
-    console.log(`Starting ESG analysis for ${ticker_symbol} (${analysis_context}) - Request ${requestId}`);
+    console.log(`Starting AI-powered ESG analysis for ${ticker_symbol} (${analysis_context}) - Request ${requestId}`);
 
-    // Perform ESG analysis
-    const analysisResult = await ESGAnalysisEngine.analyze(
-      ticker_symbol,
-      api_key,
-      analysis_context
-    );
+    // Create ESG analysis engine and perform analysis
+    const engine = new ESGAnalysisEngine(api_key);
+    const analysisResult = await engine.analyze(ticker_symbol, analysis_context);
 
     console.log(`ESG analysis completed for ${ticker_symbol} - Score: ${analysisResult.score} - Request ${requestId}`);
 

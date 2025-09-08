@@ -44,7 +44,8 @@ serve(async (req) => {
     }
 
     // --- Application Logic ---
-    const { ticker, context } = await req.json();
+    // Extract all required fields from request body, including optional trading_timeframe
+    const { ticker, context, trading_timeframe } = await req.json();
     if (!ticker || !context) {
       throw new Error("Missing ticker or context in request body");
     }
@@ -72,11 +73,11 @@ serve(async (req) => {
       .limit(1);
 
     if (checkError) throw new Error(`Database check failed: ${checkError.message}`);
-    
+
     if (existingJobs && existingJobs.length > 0) {
       // FIXED: Standardized success response for existing job
       return new Response(
-        JSON.stringify({ success: true, jobId: existingJobs[0].id }), 
+        JSON.stringify({ success: true, jobId: existingJobs[0].id }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -90,10 +91,40 @@ serve(async (req) => {
         user_id: userId,
         ticker_symbol: ticker.toUpperCase(),
         analysis_context: context,
+        ...(trading_timeframe && { trading_timeframe }),
         status: 'pending',
       });
 
     if (insertError) throw new Error(`Failed to create job: ${insertError.message}`);
+
+    // Asynchronously trigger the analyze-ticker function (fire-and-forget)
+    supabase.functions.invoke('analyze-ticker', {
+      body: {
+        jobId: jobId,
+        ticker_symbol: ticker.toUpperCase(),
+        analysis_context: context,
+        ...(trading_timeframe && { trading_timeframe })
+      }
+    }).catch(async (invocationError) => {
+      // Log the error for debugging
+      console.error(`Failed to invoke analyze-ticker for job ${jobId}:`, invocationError);
+      
+      // Update the job status to failed to prevent it from being stuck in pending
+      try {
+        await supabase
+          .from('analysis_jobs')
+          .update({
+            status: 'failed',
+            error_message: `Failed to start analysis: ${invocationError.message || 'Unknown error'}`,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', jobId);
+        
+        console.log(`Job ${jobId} marked as failed due to invocation error`);
+      } catch (updateError) {
+        console.error(`Failed to update job ${jobId} status to failed:`, updateError);
+      }
+    });
 
     // FIXED: Standardized success response for new job
     return new Response(

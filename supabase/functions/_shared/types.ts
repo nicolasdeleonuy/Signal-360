@@ -8,6 +8,7 @@ export interface AnalysisRequest {
   ticker_symbol: string;
   analysis_context: 'investment' | 'trading';
   trading_timeframe?: string; // Required for trading context
+  jobId?: string; // Optional job ID for asynchronous workflow
 }
 
 export interface AnalysisResponse {
