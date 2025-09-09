@@ -24,10 +24,9 @@ export function DashboardPage() {
     data: analysisData, 
     error: analysisError, 
     isLoading: analysisLoading, 
-    progress: analysisProgress,
-    jobId,
     runAnalysis,
-    cancelAnalysis
+    cancelAnalysis,
+    resetAnalysis
   } = useSignalAnalysis();
   const [dashboardState, setDashboardState] = useState(initialDashboardState);
 
@@ -53,11 +52,16 @@ export function DashboardPage() {
   const handleTickerSubmit = useCallback(async (ticker: string) => {
     try {
       clearError();
-      setDashboardState({
-        ...initialDashboardState,
+      setDashboardState(prev => ({
+        ...prev,
         tickerSymbol: ticker,
-      });
-      await runAnalysis(ticker);
+      }));
+      
+      // Get the goal and timeframe from current state
+      const goal = dashboardState.goalSelection || 'investment';
+      const timeframe = dashboardState.tradingTimeframe || '1M';
+      
+      await runAnalysis(ticker, goal, timeframe);
     } catch (error) {
       if (isMountedRef.current) {
         handleError(error, {
@@ -67,7 +71,7 @@ export function DashboardPage() {
         });
       }
     }
-  }, [runAnalysis, clearError, handleError]);
+  }, [runAnalysis, clearError, handleError, dashboardState.goalSelection, dashboardState.tradingTimeframe]);
 
   const handleTickerSelection = useCallback((ticker: string, _companyName: string) => {
     // Trigger existing analysis flow with the selected ticker
@@ -81,79 +85,19 @@ export function DashboardPage() {
   }, [cancelAnalysis]);
 
   const handleGoalSelection = useCallback((goal: InvestmentGoal) => {
-    if (!analysisData) return;
-
-    let synthesisScore = 50;
-    const convergenceFactors: string[] = [];
-    const divergenceFactors: string[] = [];
-
-    if (analysisData.data?.fundamental) {
-      const fundamental = analysisData.data.fundamental;
-      if ((fundamental as any).growthMetrics?.revenueGrowth > 0.10) {
-        synthesisScore += 10;
-        convergenceFactors.push("Strong revenue growth (> 10%)");
-      }
-      if ((fundamental as any).financialRatios?.debtToEquity < 0.5) {
-        synthesisScore += 10;
-        convergenceFactors.push("Healthy debt-to-equity ratio (< 0.5)");
-      }
-      if ((fundamental as any).financialRatios?.peRatio > 30) {
-        synthesisScore -= 10;
-        divergenceFactors.push("High valuation (P/E Ratio > 30)");
-      }
-    }
-    if (analysisData.data?.technical) {
-      const technical = analysisData.data.technical;
-      if ((technical as any).trendIndicators?.sma50 > (technical as any).trendIndicators?.sma200) {
-        synthesisScore += 10;
-        convergenceFactors.push("Positive long-term trend (50-day SMA > 200-day SMA)");
-      }
-      if ((technical as any).momentumIndicators?.rsi > 70) {
-        synthesisScore -= 10;
-        divergenceFactors.push("Asset may be overbought (RSI > 70)");
-      }
-      if ((technical as any).momentumIndicators?.rsi < 30) {
-        synthesisScore += 10;
-        convergenceFactors.push("Asset may be oversold (RSI < 30)");
-      }
-    }
-    if (analysisData.data?.esg) {
-      const esg = analysisData.data.esg;
-      if ((esg as any).overallESGScore > 70) {
-        synthesisScore += 10;
-        convergenceFactors.push("Strong ESG rating (> 70)");
-      }
-    }
-    if (analysisData.partial && analysisData.failedAnalyses) {
-      analysisData.failedAnalyses.forEach(failed => {
-        synthesisScore -= 5;
-        divergenceFactors.push(`${failed} analysis failed`);
-      });
-    }
-
-    let recommendation: 'BUY' | 'SELL' | 'HOLD' = 'HOLD';
-    if (synthesisScore >= 70) recommendation = 'BUY';
-    else if (synthesisScore < 40) recommendation = 'SELL';
-
-    const results: AnalysisResult = {
-      synthesisScore,
-      recommendation,
-      convergenceFactors,
-      divergenceFactors
-    };
-
     setDashboardState(prev => ({
       ...prev,
       goalSelection: goal.type,
       tradingTimeframe: goal.timeframe || null,
-      results
     }));
-  }, [analysisData]);
+  }, []);
 
   const handleNewAnalysis = useCallback(() => {
-    // `handleCancelAnalysis` ya tiene la lógica correcta para resetear.
-    handleCancelAnalysis();
-  }, [handleCancelAnalysis]);
+    // Reset both dashboard state and analysis hook state
+    setDashboardState(initialDashboardState);
+    resetAnalysis();
+    clearError();
+  }, [resetAnalysis, clearError]);
 
   useEffect(() => {
     if (analysisError && isMountedRef.current) {
@@ -163,7 +107,55 @@ export function DashboardPage() {
         operation: 'analysis'
       });
     }
-  }, [analysisError, dashboardState.tickerSymbol]);
+  }, [analysisError, dashboardState.tickerSymbol, handleError]);
+
+  // Handle analysis completion and use the real analysis verdict
+  useEffect(() => {
+    if (analysisData && !dashboardState.results) {
+      // 🔍 DIAGNOSTIC LOG: Verify the analysis data structure
+      console.log('🔍 [DASHBOARD-DIAGNOSTIC] Creating results from analysisData:', {
+        hasVerdict: !!analysisData.verdict,
+        finalScore: analysisData.verdict?.finalScore,
+        recommendation: analysisData.verdict?.recommendation,
+        convergenceFactors: analysisData.verdict?.convergenceFactors,
+        divergenceFactors: analysisData.verdict?.divergenceFactors
+      });
+
+      // Use the actual analysis verdict instead of creating a custom synthesis
+      const verdict = analysisData.verdict;
+      
+      // Map the recommendation format from the analysis service to the UI format
+      let uiRecommendation: 'BUY' | 'SELL' | 'HOLD' = 'HOLD';
+      switch (verdict.recommendation) {
+        case 'Strong Buy':
+        case 'Buy':
+          uiRecommendation = 'BUY';
+          break;
+        case 'Strong Sell':
+        case 'Sell':
+          uiRecommendation = 'SELL';
+          break;
+        case 'Hold':
+        default:
+          uiRecommendation = 'HOLD';
+          break;
+      }
+
+      const results: AnalysisResult = {
+        synthesisScore: Math.round(verdict.finalScore), // Use the real final score from the analysis
+        recommendation: uiRecommendation,
+        convergenceFactors: verdict.convergenceFactors || [],
+        divergenceFactors: verdict.divergenceFactors || [],
+      };
+
+      console.log('🔍 [DASHBOARD-DIAGNOSTIC] Final results object being set to state:', results);
+
+      setDashboardState(prev => ({
+        ...prev,
+        results
+      }));
+    }
+  }, [analysisData, dashboardState.results]);
 
   useEffect(() => {
     return () => {
@@ -180,27 +172,30 @@ export function DashboardPage() {
     }
   }, [dashboardState.tickerSymbol, handleTickerSubmit, canRetry, retryLastOperation]);
 
-  // CORRECCIÓN 1: Lógica de Estado Derivado Refinada.
-  // La ausencia de un `tickerSymbol` ahora tiene la máxima prioridad
-  // para asegurar que el reinicio siempre lleve a la pantalla de 'input'.
+  // State machine logic: Goal selection must come first
   const getCurrentStep = () => {
     const { tickerSymbol, results, goalSelection } = dashboardState;
+    if (!goalSelection) return 'goal-selection';
     if (!tickerSymbol) return 'input';
     if (results) return 'results';
-    if (goalSelection) return 'results'; // Si hay objetivo, vamos a los resultados
-    if (analysisData) return 'goal-selection';
     if (analysisLoading) return 'analysis';
     return 'input'; // Fallback seguro
   };
   const currentStep = getCurrentStep();
 
   const renderStepContent = () => {
-
     switch (currentStep) {
+      case 'goal-selection':
+        return (
+          <div className="step-content-card">
+            <GoalSelection onGoalSelect={handleGoalSelection} loading={false} />
+          </div>
+        );
+
       case 'input':
         return (
           <div className="step-content-card">
-            <h2>Enter Ticker Symbol</h2>
+            <h2>Analyzing for: {dashboardState.goalSelection}</h2>
             <p>Start your comprehensive financial analysis by entering a stock ticker symbol.</p>
             <TickerSearch
               onTickerSelect={handleTickerSelection}
@@ -215,46 +210,17 @@ export function DashboardPage() {
         return (
           <div className="step-content-card">
             <h2>Analyzing {dashboardState.tickerSymbol}</h2>
-            <p>Running comprehensive fundamental analysis with real market data...</p>
+            <p>Running comprehensive {dashboardState.goalSelection} analysis with real market data...</p>
             <div className="analysis-loading">
               <div className="analysis-progress">
                 <div className="spinner" aria-label="Analysis in progress"></div>
                 <div className="progress-info">
-                  {analysisProgress && (
-                    <>
-                      <div className="progress-bar">
-                        <div 
-                          className="progress-fill" 
-                          style={{ width: `${analysisProgress.progress}%` }}
-                        ></div>
-                      </div>
-                      <p className="progress-text">
-                        {analysisProgress.currentPhase} ({analysisProgress.progress}%)
-                      </p>
-                      {jobId && (
-                        <p className="job-id">Job ID: {jobId}</p>
-                      )}
-                    </>
-                  )}
-                  {!analysisProgress && (
-                    <p>Starting analysis...</p>
-                  )}
+                  <p>Running analysis...</p>
                 </div>
               </div>
               <button onClick={cancelAnalysis} className="cancel-button">
                 Cancel Analysis
               </button>
-            </div>
-          </div>
-        );
-
-      case 'goal-selection':
-        return (
-          <div className="step-content-card">
-            <GoalSelection onGoalSelect={handleGoalSelection} loading={false} />
-            <div className="analysis-summary">
-              <h3>Analysis Summary for {dashboardState.tickerSymbol}</h3>
-              <p>✅ Analysis completed at {new Date().toLocaleTimeString()}</p>
             </div>
           </div>
         );
@@ -293,14 +259,14 @@ export function DashboardPage() {
 
         <main className="dashboard-main">
           <div className="step-indicator">
-            <div className={`step ${currentStep === 'input' ? 'active' : 'completed'}`}>
-              1. Ticker Input
+            <div className={`step ${currentStep === 'goal-selection' ? 'active' : ['input', 'analysis', 'results'].includes(currentStep) ? 'completed' : ''}`}>
+              1. Goal Selection
             </div>
-            <div className={`step ${currentStep === 'analysis' ? 'active' : ['goal-selection', 'results'].includes(currentStep) ? 'completed' : ''}`}>
-              2. Analysis
+            <div className={`step ${currentStep === 'input' ? 'active' : ['analysis', 'results'].includes(currentStep) ? 'completed' : ''}`}>
+              2. Ticker Input
             </div>
-            <div className={`step ${currentStep === 'goal-selection' ? 'active' : currentStep === 'results' ? 'completed' : ''}`}>
-              3. Goal Selection
+            <div className={`step ${currentStep === 'analysis' ? 'active' : currentStep === 'results' ? 'completed' : ''}`}>
+              3. Analysis
             </div>
             <div className={`step ${currentStep === 'results' ? 'active' : ''}`}>
               4. Results
