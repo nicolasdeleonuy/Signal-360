@@ -28,6 +28,31 @@ vi.mock('../../lib/supabase', () => ({
 import { supabase } from '../../lib/supabaseClient'
 const mockSignInWithPassword = vi.mocked(supabase.auth.signInWithPassword)
 
+// Mock objects that match Supabase types
+const mockUser = {
+  id: '123e4567-e89b-12d3-a456-426614174000',
+  email: 'test@example.com',
+  app_metadata: {},
+  user_metadata: {},
+  aud: 'authenticated',
+  created_at: '2023-01-01T00:00:00Z',
+  updated_at: '2023-01-01T00:00:00Z',
+  email_confirmed_at: '2023-01-01T00:00:00Z',
+  phone: undefined,
+  confirmed_at: '2023-01-01T00:00:00Z',
+  last_sign_in_at: '2023-01-01T00:00:00Z',
+  role: 'authenticated'
+}
+
+const mockSession = {
+  access_token: 'mock-access-token',
+  refresh_token: 'mock-refresh-token',
+  expires_in: 3600,
+  token_type: 'bearer',
+  user: mockUser,
+  expires_at: Math.floor(Date.now() / 1000) + 3600
+}
+
 function TestApp({ initialEntries = ['/login'] }: { initialEntries?: any[] }) {
   return (
     <MemoryRouter initialEntries={initialEntries}>
@@ -47,8 +72,8 @@ describe('LoginPage Integration', () => {
     const user = userEvent.setup()
     mockSignInWithPassword.mockResolvedValue({
       data: { 
-        user: { id: '1', email: 'test@example.com' }, 
-        session: { access_token: 'token' } 
+        user: mockUser, 
+        session: mockSession 
       },
       error: null,
     })
@@ -80,11 +105,14 @@ describe('LoginPage Integration', () => {
     const user = userEvent.setup()
     const supabaseError = {
       message: 'Invalid login credentials',
-      status: 400,
+      code: 'invalid_credentials',
+      __isAuthError: true,
+      name: 'AuthError',
+      status: 400
     }
     mockSignInWithPassword.mockResolvedValue({
       data: { user: null, session: null },
-      error: supabaseError,
+      error: supabaseError as any,
     })
 
     render(<TestApp />)
@@ -161,9 +189,6 @@ describe('LoginPage Integration', () => {
 
   it('should handle successful authentication flow', async () => {
     const user = userEvent.setup()
-    const mockUser = { id: '1', email: 'test@example.com' }
-    const mockSession = { access_token: 'token', user: mockUser }
-
     // Mock successful sign in
     mockSignInWithPassword.mockResolvedValue({
       data: { user: mockUser, session: mockSession },

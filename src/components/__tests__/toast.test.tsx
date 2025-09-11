@@ -1,5 +1,5 @@
 // Migrated to Vitest
-import { render, screen, waitFor, act } from '@testing-library/react'
+import { render, screen, act } from '@testing-library/react'
 import { vi } from 'vitest'
 import { ToastProvider, useToast } from '../toast'
 
@@ -244,7 +244,7 @@ describe('Toast System', () => {
     expect(toast).toBeInTheDocument()
 
     act(() => {
-      toast!.click()
+      (toast as HTMLElement).click()
     })
 
     // Advance timers to trigger the close animation setTimeout

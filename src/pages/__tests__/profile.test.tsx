@@ -2,13 +2,13 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
-import { vi } from 'vitest'
+import { vi, type MockedFunction } from 'vitest'
 import { ProfilePage } from '../profile'
 import { useAuth } from '../../contexts/auth-context'
 
 // Mock the auth context
 vi.mock('../../contexts/auth-context')
-const mockUseAuth = useAuth as vi.MockedFunction<typeof useAuth>
+const mockUseAuth = useAuth as MockedFunction<typeof useAuth>
 
 // Mock navigate
 const mockNavigate = vi.fn()

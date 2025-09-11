@@ -1,6 +1,6 @@
 // Migrated to Vitest
 import { renderHook, act } from '@testing-library/react'
-import { vi } from 'vitest'
+import { vi, type MockedFunction } from 'vitest'
 import { useSession } from '../use-session'
 import { useAuth } from '../../contexts/auth-context'
 import { SessionManager } from '../../utils/session-manager'
@@ -9,8 +9,8 @@ import { SessionManager } from '../../utils/session-manager'
 vi.mock('../../contexts/auth-context')
 vi.mock('../../utils/session-manager')
 
-const mockUseAuth = useAuth as vi.MockedFunction<typeof useAuth>
-const mockSessionManager = SessionManager as vi.Mocked<typeof SessionManager>
+const mockUseAuth = useAuth as MockedFunction<typeof useAuth>
+const mockSessionManager = vi.mocked(SessionManager)
 
 // Mock timers
 vi.useFakeTimers()

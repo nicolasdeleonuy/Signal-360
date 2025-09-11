@@ -180,7 +180,7 @@ describe('ErrorHandler', () => {
       
       customHandler.addRule(
         (error) => error.message === 'custom error',
-        (error) => ({
+        (_error) => ({
           type: ErrorType.VALIDATION,
           code: 'CUSTOM_ERROR',
           userMessage: 'This is a custom error',

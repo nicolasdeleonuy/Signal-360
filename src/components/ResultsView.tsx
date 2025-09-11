@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { AnalysisResult } from '../types/dashboard';
-import { AnalysisApiResponse } from '../lib/apiService';
+import { InvestmentAnalysisResponse } from '../services/analysisService';
 
 interface ResultsViewProps {
   results: AnalysisResult;
   onNewAnalysis: () => void;
-  analysisData?: AnalysisApiResponse | null;
+  analysisData?: InvestmentAnalysisResponse | null;
   ticker?: string;
   loading?: boolean;
 }
@@ -17,19 +17,13 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
   ticker,
   loading = false
 }) => {
-  const [showRawData, setShowRawData] = useState(false);
-  const [activeTab, setActiveTab] = useState<'summary' | 'raw' | 'detailed'>('summary');
+  const [activeTab, setActiveTab] = useState<'summary' | 'value' | 'eco'>('summary');
   const getRecommendationColor = (recommendation: string) => {
-    switch (recommendation) {
-      case 'BUY':
-        return 'text-green-600 bg-green-50 border-green-200';
-      case 'SELL':
-        return 'text-red-600 bg-red-50 border-red-200';
-      case 'HOLD':
-        return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-      default:
-        return 'text-gray-600 bg-gray-50 border-gray-200';
-    }
+    const normalizedRec = recommendation.toLowerCase();
+    if (normalizedRec.includes('buy')) return 'text-green-600 bg-green-50 border-green-200';
+    if (normalizedRec.includes('sell')) return 'text-red-600 bg-red-50 border-red-200';
+    if (normalizedRec.includes('hold')) return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+    return 'text-gray-600 bg-gray-50 border-gray-200';
   };
 
   const getScoreColor = (score: number) => {
@@ -38,18 +32,17 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
     return 'text-red-600';
   };
 
-  // Data sanitization function
-  const sanitizeData = (data: any): any => {
-    if (data === null || data === undefined) return null;
-    if (typeof data === 'string') return data.replace(/<[^>]*>/g, ''); // Remove HTML tags
-    if (typeof data === 'object') {
-      const sanitized: any = {};
-      for (const [key, value] of Object.entries(data)) {
-        sanitized[key] = sanitizeData(value);
-      }
-      return sanitized;
-    }
-    return data;
+  const formatCurrency = (amount: number, currency: string = 'USD') => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  };
+
+  const formatPercentage = (value: number) => {
+    return `${(value * 100).toFixed(2)}%`;
   };
 
   // Handle empty state
@@ -88,9 +81,6 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
     );
   }
 
-  // Sanitize analysis data before display
-  const sanitizedAnalysisData = analysisData ? sanitizeData(analysisData) : null;
-
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
       {/* Header Section */}
@@ -100,44 +90,46 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
         </h1>
         
         {/* Analysis metadata */}
-        {sanitizedAnalysisData && (
+        {analysisData && (
           <div className="text-sm text-gray-500 space-y-1">
-            <p>Analysis completed at {new Date().toLocaleTimeString()}</p>
-            {sanitizedAnalysisData.executionTime && (
-              <p>Execution time: {sanitizedAnalysisData.executionTime}ms</p>
-            )}
-            {sanitizedAnalysisData.partial && sanitizedAnalysisData.failedAnalyses && (
-              <p className="text-yellow-600">
-                ⚠️ Partial results - Some components failed: {sanitizedAnalysisData.failedAnalyses.join(', ')}
-              </p>
-            )}
-          </div>
-        )}
-        
-        {/* Connection Status */}
-        {sanitizedAnalysisData && (
-          <div className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-100 text-green-800">
-            <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-            Backend Connection Verified
+            <p>Analysis completed at {new Date(analysisData.analysisTimestamp).toLocaleString()}</p>
           </div>
         )}
 
-        {/* Synthesis Score - only show if results exist */}
-        {results && (
-          <div className="flex items-center justify-center space-x-4">
+        {/* Main Header with Score, Recommendation, and Price */}
+        <div className="flex items-center justify-center space-x-8">
+          {/* Synthesis Score */}
+          {(results?.synthesisScore || analysisData?.verdict?.finalScore) && (
             <div className="text-center">
-              <div className={`text-6xl font-bold ${getScoreColor(results.synthesisScore)}`}>
-                {results.synthesisScore}
+              <div className={`text-6xl font-bold ${getScoreColor(results?.synthesisScore || analysisData?.verdict?.finalScore || 0)}`}>
+                {results?.synthesisScore || analysisData?.verdict?.finalScore || 0}
               </div>
               <div className="text-sm text-gray-500">Synthesis Score</div>
             </div>
-            
-            {/* Recommendation Badge */}
-            <div className={`px-6 py-3 rounded-lg border-2 font-semibold text-lg ${getRecommendationColor(results.recommendation)}`}>
-              {results.recommendation}
+          )}
+          
+          {/* Recommendation Badge */}
+          {(results?.recommendation || analysisData?.verdict?.recommendation) && (
+            <div className={`px-6 py-3 rounded-lg border-2 font-semibold text-lg ${getRecommendationColor(results?.recommendation || analysisData?.verdict?.recommendation || '')}`}>
+              {results?.recommendation || analysisData?.verdict?.recommendation}
             </div>
-          </div>
-        )}
+          )}
+
+          {/* Current Price */}
+          {analysisData?.marketData && (
+            <div className="text-center">
+              <div className="text-3xl font-bold text-gray-900">
+                {formatCurrency(analysisData.marketData.currentPrice, analysisData.marketData.currency)}
+              </div>
+              <div className="text-sm text-gray-500">Current Price</div>
+              {analysisData.marketData.priceTimestamp && (
+                <div className="text-xs text-gray-400">
+                  {new Date(analysisData.marketData.priceTimestamp).toLocaleString()}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Tab Navigation */}
@@ -154,24 +146,24 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
             Summary
           </button>
           <button
-            onClick={() => setActiveTab('detailed')}
+            onClick={() => setActiveTab('value')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'detailed'
+              activeTab === 'value'
                 ? 'border-blue-500 text-blue-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            Detailed Analysis
+            Value Analysis
           </button>
           <button
-            onClick={() => setActiveTab('raw')}
+            onClick={() => setActiveTab('eco')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'raw'
+              activeTab === 'eco'
                 ? 'border-blue-500 text-blue-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            Raw Data
+            Eco Signal
           </button>
         </nav>
       </div>
@@ -179,146 +171,215 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
       {/* Tab Content */}
       <div className="mt-6">
         {/* Summary Tab */}
-        {activeTab === 'summary' && results && (
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* Convergence Factors */}
-            <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-              <h2 className="text-xl font-semibold text-green-800 mb-4 flex items-center">
-                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                Convergence Factors
-              </h2>
-              <ul className="space-y-3">
-                {results.convergenceFactors.map((factor, index) => (
-                  <li key={index} className="flex items-start">
-                    <span className="flex-shrink-0 w-2 h-2 bg-green-500 rounded-full mt-2 mr-3"></span>
-                    <span className="text-green-700">{factor}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+        {activeTab === 'summary' && (
+          <div className="space-y-8">
+            {/* Company Profile */}
+            {analysisData?.fundamental?.businessModel && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <h2 className="text-xl font-semibold text-blue-800 mb-4">Company Profile</h2>
+                <p className="text-blue-700 leading-relaxed">{analysisData.fundamental.businessModel}</p>
+              </div>
+            )}
 
-            {/* Divergence Factors */}
-            <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-              <h2 className="text-xl font-semibold text-red-800 mb-4 flex items-center">
-                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-                Divergence Factors
-              </h2>
-              <ul className="space-y-3">
-                {results.divergenceFactors.map((factor, index) => (
-                  <li key={index} className="flex items-start">
-                    <span className="flex-shrink-0 w-2 h-2 bg-red-500 rounded-full mt-2 mr-3"></span>
-                    <span className="text-red-700">{factor}</span>
-                  </li>
-                ))}
-              </ul>
+            {/* Bullish vs Bearish Case */}
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* The Bullish Case */}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+                <h2 className="text-xl font-semibold text-green-800 mb-4 flex items-center">
+                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  The Bullish Case
+                </h2>
+                <ul className="space-y-3">
+                  {(results?.bullishFactors || analysisData?.verdict?.bullishFactors || []).map((factor, index) => (
+                    <li key={index} className="flex items-start">
+                      <span className="flex-shrink-0 w-2 h-2 bg-green-500 rounded-full mt-2 mr-3"></span>
+                      <span className="text-green-700">{factor}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* The Bearish Case */}
+              <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+                <h2 className="text-xl font-semibold text-red-800 mb-4 flex items-center">
+                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  The Bearish Case
+                </h2>
+                <ul className="space-y-3">
+                  {(results?.bearishFactors || analysisData?.verdict?.bearishFactors || []).map((factor, index) => (
+                    <li key={index} className="flex items-start">
+                      <span className="flex-shrink-0 w-2 h-2 bg-red-500 rounded-full mt-2 mr-3"></span>
+                      <span className="text-red-700">{factor}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Detailed Analysis Tab */}
-        {activeTab === 'detailed' && sanitizedAnalysisData && (
-          <div className="space-y-6">
-            {/* Analysis Components */}
-            <div className="grid md:grid-cols-3 gap-6">
-              {/* Fundamental Analysis */}
-              {sanitizedAnalysisData.data?.fundamental && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-blue-800 mb-3">Fundamental Analysis</h3>
-                  <div className="space-y-2 text-sm">
-                    <p><span className="font-medium">Score:</span> {sanitizedAnalysisData.data.fundamental.score}</p>
-                    <p><span className="font-medium">Confidence:</span> {sanitizedAnalysisData.data.fundamental.confidence}%</p>
-                    <p><span className="font-medium">Factors:</span> {sanitizedAnalysisData.data.fundamental.factors?.length || 0}</p>
+        {/* Value Analysis Tab */}
+        {activeTab === 'value' && analysisData && (
+          <div className="space-y-8">
+            {/* Key Financial Ratios */}
+            {analysisData.fundamental?.keyFinancialRatios && (
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <h2 className="text-xl font-semibold text-gray-800 mb-6">Key Financial Ratios</h2>
+                <div className="grid md:grid-cols-3 gap-6">
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <div className="text-2xl font-bold text-gray-900">{analysisData.fundamental.keyFinancialRatios.peRatio.toFixed(2)}</div>
+                    <div className="text-sm text-gray-600">P/E Ratio</div>
+                  </div>
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <div className="text-2xl font-bold text-gray-900">{analysisData.fundamental.keyFinancialRatios.pbRatio.toFixed(2)}</div>
+                    <div className="text-sm text-gray-600">P/B Ratio</div>
+                  </div>
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <div className="text-2xl font-bold text-gray-900">{formatPercentage(analysisData.fundamental.keyFinancialRatios.roe)}</div>
+                    <div className="text-sm text-gray-600">ROE</div>
+                  </div>
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <div className="text-2xl font-bold text-gray-900">{formatPercentage(analysisData.fundamental.keyFinancialRatios.roic)}</div>
+                    <div className="text-sm text-gray-600">ROIC</div>
+                  </div>
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <div className="text-2xl font-bold text-gray-900">{analysisData.fundamental.keyFinancialRatios.debtToEquity.toFixed(2)}</div>
+                    <div className="text-sm text-gray-600">Debt/Equity</div>
+                  </div>
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <div className="text-2xl font-bold text-gray-900">{analysisData.fundamental.keyFinancialRatios.currentRatio.toFixed(2)}</div>
+                    <div className="text-sm text-gray-600">Current Ratio</div>
                   </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Technical Analysis */}
-              {sanitizedAnalysisData.data?.technical && (
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-purple-800 mb-3">Technical Analysis</h3>
-                  <div className="space-y-2 text-sm">
-                    <p><span className="font-medium">Score:</span> {sanitizedAnalysisData.data.technical.score}</p>
-                    <p><span className="font-medium">Confidence:</span> {sanitizedAnalysisData.data.technical.confidence}%</p>
-                    <p><span className="font-medium">Factors:</span> {sanitizedAnalysisData.data.technical.factors?.length || 0}</p>
+            {/* Valuation (DCF) */}
+            {analysisData.fundamental?.dcfAssumptions && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <h2 className="text-xl font-semibold text-blue-800 mb-6">Valuation (DCF)</h2>
+                <div className="grid md:grid-cols-2 gap-8">
+                  <div>
+                    <h3 className="text-lg font-medium text-blue-700 mb-4">Intrinsic Value</h3>
+                    <div className="text-3xl font-bold text-blue-900">
+                      {formatCurrency(analysisData.fundamental.dcfAssumptions.intrinsicValue, analysisData.marketData.currency)}
+                    </div>
+                    <div className="text-sm text-blue-600 mt-2">
+                      vs Current: {formatCurrency(analysisData.marketData.currentPrice, analysisData.marketData.currency)}
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-blue-700 mb-4">Key Assumptions</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Growth Rate:</span>
+                        <span className="font-medium">{formatPercentage(analysisData.fundamental.dcfAssumptions.growthRate)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Discount Rate:</span>
+                        <span className="font-medium">{formatPercentage(analysisData.fundamental.dcfAssumptions.discountRate)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Terminal Growth:</span>
+                        <span className="font-medium">{formatPercentage(analysisData.fundamental.dcfAssumptions.terminalGrowthRate)}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* ESG Analysis */}
-              {sanitizedAnalysisData.data?.esg && (
+            {/* Strengths & Weaknesses */}
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* Strengths */}
+              {analysisData.fundamental?.strengths && (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-green-800 mb-3">ESG Analysis</h3>
-                  <div className="space-y-2 text-sm">
-                    <p><span className="font-medium">Score:</span> {sanitizedAnalysisData.data.esg.score}</p>
-                    <p><span className="font-medium">Confidence:</span> {sanitizedAnalysisData.data.esg.confidence}%</p>
-                    <p><span className="font-medium">Factors:</span> {sanitizedAnalysisData.data.esg.factors?.length || 0}</p>
-                  </div>
+                  <h2 className="text-xl font-semibold text-green-800 mb-4">Strengths</h2>
+                  <ul className="space-y-3">
+                    {analysisData.fundamental.strengths.map((strength, index) => (
+                      <li key={index} className="flex items-start">
+                        <span className="flex-shrink-0 w-2 h-2 bg-green-500 rounded-full mt-2 mr-3"></span>
+                        <span className="text-green-700">{strength}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
-            </div>
 
-            {/* Analysis Context */}
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-3">Analysis Context</h3>
-              <div className="grid md:grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p><span className="font-medium">Ticker:</span> {sanitizedAnalysisData.data?.ticker}</p>
-                  <p><span className="font-medium">Context:</span> {sanitizedAnalysisData.data?.context}</p>
-                  <p><span className="font-medium">Timestamp:</span> {sanitizedAnalysisData.data?.timestamp}</p>
+              {/* Weaknesses */}
+              {analysisData.fundamental?.weaknesses && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+                  <h2 className="text-xl font-semibold text-red-800 mb-4">Weaknesses</h2>
+                  <ul className="space-y-3">
+                    {analysisData.fundamental.weaknesses.map((weakness, index) => (
+                      <li key={index} className="flex items-start">
+                        <span className="flex-shrink-0 w-2 h-2 bg-red-500 rounded-full mt-2 mr-3"></span>
+                        <span className="text-red-700">{weakness}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <div>
-                  <p><span className="font-medium">Success:</span> {sanitizedAnalysisData.success ? 'Yes' : 'No'}</p>
-                  <p><span className="font-medium">Partial:</span> {sanitizedAnalysisData.partial ? 'Yes' : 'No'}</p>
-                  <p><span className="font-medium">Execution Time:</span> {sanitizedAnalysisData.executionTime}ms</p>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* Raw Data Tab - For connection validation */}
-        {activeTab === 'raw' && (
-          <div className="space-y-4">
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-800">Raw API Response</h3>
-                <div className="text-sm text-gray-500">
-                  Connection Status: 
-                  <span className="ml-1 text-green-600 font-medium">
-                    {sanitizedAnalysisData ? 'Connected ✓' : 'No Data'}
-                  </span>
+        {/* Eco Signal Tab */}
+        {activeTab === 'eco' && analysisData && (
+          <div className="space-y-8">
+            {/* Eco Score */}
+            {analysisData.sentiment?.sentimentScore !== undefined && (
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-6 text-center">
+                <h2 className="text-xl font-semibold text-purple-800 mb-4">Eco Score</h2>
+                <div className={`text-6xl font-bold ${getScoreColor(analysisData.sentiment.sentimentScore)}`}>
+                  {analysisData.sentiment.sentimentScore}
+                </div>
+                <div className="text-sm text-purple-600 mt-2">Market Sentiment Score</div>
+              </div>
+            )}
+
+            {/* Technical Context */}
+            {analysisData.technical && (
+              <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-6">
+                <h2 className="text-xl font-semibold text-indigo-800 mb-6">Technical Context</h2>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="text-lg font-medium text-indigo-700 mb-4">Technical Score</h3>
+                    <div className={`text-4xl font-bold ${getScoreColor(analysisData.technical.technicalScore)}`}>
+                      {analysisData.technical.technicalScore}
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-indigo-700 mb-4">Market Trend</h3>
+                    <div className="text-2xl font-semibold text-indigo-900 capitalize">
+                      {analysisData.technical.trend}
+                    </div>
+                    <div className="text-sm text-indigo-600 mt-2">
+                      Support: {formatCurrency(analysisData.technical.support, analysisData.marketData.currency)} | 
+                      Resistance: {formatCurrency(analysisData.technical.resistance, analysisData.marketData.currency)}
+                    </div>
+                  </div>
                 </div>
               </div>
-              
-              {sanitizedAnalysisData ? (
-                <div className="bg-gray-900 text-green-400 p-4 rounded-lg overflow-auto max-h-96">
-                  <pre className="text-xs whitespace-pre-wrap">
-                    {JSON.stringify(sanitizedAnalysisData, null, 2)}
-                  </pre>
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <p>No raw data available</p>
-                  <p className="text-sm mt-2">Complete an analysis to see the raw API response</p>
-                </div>
-              )}
-            </div>
+            )}
 
-            {/* Data validation info */}
-            {sanitizedAnalysisData && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-medium text-blue-800 mb-2">Data Pipeline Validation</h4>
-                <div className="space-y-1 text-sm text-blue-700">
-                  <p>✓ Frontend-Backend connection established</p>
-                  <p>✓ API response received and parsed</p>
-                  <p>✓ Data sanitization applied</p>
-                  <p>✓ Component rendering successful</p>
-                  {sanitizedAnalysisData.success && <p>✓ Analysis completed successfully</p>}
-                  {sanitizedAnalysisData.partial && <p>⚠ Partial results detected</p>}
+            {/* News Echoes */}
+            {analysisData.sentiment?.newsEchoes && (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                <h2 className="text-xl font-semibold text-gray-800 mb-6">News Echoes</h2>
+                <div className="space-y-4">
+                  {analysisData.sentiment.newsEchoes.map((echo, index) => (
+                    <div key={index} className="bg-white border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-start">
+                        <span className="flex-shrink-0 w-2 h-2 bg-gray-400 rounded-full mt-2 mr-3"></span>
+                        <span className="text-gray-700">{echo}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -335,11 +396,10 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
           Start New Analysis
         </button>
         
-        {/* Export/Share functionality for future enhancement */}
         <button
           onClick={() => {
-            if (sanitizedAnalysisData) {
-              const dataStr = JSON.stringify(sanitizedAnalysisData, null, 2);
+            if (analysisData) {
+              const dataStr = JSON.stringify(analysisData, null, 2);
               const dataBlob = new Blob([dataStr], { type: 'application/json' });
               const url = URL.createObjectURL(dataBlob);
               const link = document.createElement('a');
@@ -349,8 +409,13 @@ export const ResultsView: React.FC<ResultsViewProps> = ({
               URL.revokeObjectURL(url);
             }
           }}
-          className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-          disabled={!sanitizedAnalysisData}
+          className={`font-semibold py-3 px-6 rounded-lg transition-colors duration-200 focus:outline-none ${
+            analysisData 
+              ? 'bg-gray-600 hover:bg-gray-700 text-white focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 cursor-pointer' 
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-60'
+          }`}
+          disabled={!analysisData}
+          title={!analysisData ? 'Export feature coming soon - complete an analysis first' : 'Export analysis data as JSON'}
         >
           Export Data
         </button>

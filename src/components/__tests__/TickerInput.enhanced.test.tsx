@@ -1,5 +1,4 @@
-import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import { TickerInput } from '../TickerInput';
@@ -19,7 +18,7 @@ vi.mock('../../hooks/useErrorHandler', () => ({
 
 // Mock the ErrorDisplay component
 vi.mock('../ErrorDisplay', () => ({
-  ErrorDisplay: ({ error, onDismiss, compact }: any) => (
+  ErrorDisplay: ({ error, onDismiss }: any) => (
     <div data-testid="error-display">
       <span>{error.userMessage}</span>
       {onDismiss && (

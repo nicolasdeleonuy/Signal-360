@@ -1,255 +1,101 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { apiService, AnalysisApiResponse, StartAnalysisResponse, AnalysisStatusResponse } from '../lib/apiService';
-import { useAuth } from '../contexts/auth-context';
-
-// Re-export types from apiService for backward compatibility
-export type { AnalysisRequest, AnalysisApiResponse as AnalysisResponse } from '../lib/apiService';
-
-// Analysis progress interface
-export interface AnalysisProgress {
-  status: 'pending' | 'in_progress' | 'completed' | 'failed';
-  progress: number;
-  currentPhase: string;
-  jobId: string;
-}
+import { useState, useCallback } from 'react';
+import { createAnalysisService, InvestmentAnalysisResponse } from '../services/analysisService';
 
 // Hook return interface
 export interface UseSignalAnalysisReturn {
-  data: AnalysisApiResponse | null;
+  data: InvestmentAnalysisResponse | null;
   error: string | null;
   isLoading: boolean;
-  progress: AnalysisProgress | null;
-  jobId: string | null;
-  runAnalysis: (ticker: string, context?: 'investment' | 'trading') => Promise<void>;
+  runAnalysis: (ticker: string, goal: 'investment' | 'trading', timeframe: string) => Promise<void>;
   cancelAnalysis: () => void;
+  resetAnalysis: () => void;
 }
 
 /**
- * Custom hook for managing asynchronous signal analysis with polling
- * Provides state management for data, error, loading, and progress states
- * Handles authentication and error scenarios with user-friendly messages
+ * Custom hook for managing direct frontend-first signal analysis
+ * Provides state management for data, error, and loading states
+ * Uses the analysisService directly without polling or backend dependencies
  */
 export function useSignalAnalysis(): UseSignalAnalysisReturn {
-  const [data, setData] = useState<AnalysisApiResponse | null>(null);
+  const [data, setData] = useState<InvestmentAnalysisResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [progress, setProgress] = useState<AnalysisProgress | null>(null);
-  const [jobId, setJobId] = useState<string | null>(null);
-  
-  const { user, session } = useAuth();
-  const pollingIntervalRef = useRef<number | null>(null);
-  const isMountedRef = useRef(true);
-
-  // Cleanup polling on unmount
-  useEffect(() => {
-    isMountedRef.current = true;
-    
-    return () => {
-      isMountedRef.current = false;
-      if (pollingIntervalRef.current !== null) {
-        clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
-      }
-    };
-  }, []);
 
   /**
-   * Stops the polling mechanism
+   * Runs the signal analysis for the given ticker using direct frontend analysis
    */
-  const stopPolling = useCallback(() => {
-    if (pollingIntervalRef.current !== null) {
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-    }
-  }, []);
-
-  /**
-   * Handles authentication errors by redirecting to login
-   */
-  const handleAuthError = useCallback(() => {
-    console.warn('Authentication error detected, user needs to log in');
-    // The auth context will handle the redirect
-    setError('Authentication failed. Please log in again.');
-    setIsLoading(false);
-    stopPolling();
-  }, [stopPolling]);
-
-  /**
-   * Polls the analysis status until completion
-   */
-  const pollAnalysisStatus = useCallback(async (currentJobId: string) => {
-    if (!isMountedRef.current) return;
-
-    try {
-      // Get access token from session
-      const accessToken = session?.access_token;
-      const statusResponse = await apiService.getAnalysisStatus(currentJobId, accessToken);
-
-      if (!isMountedRef.current) return;
-
-      if (!statusResponse.success) {
-        // Handle authentication errors
-        if (statusResponse.error?.code === 'AUTHENTICATION_ERROR' || 
-            statusResponse.error?.code === 'INVALID_TOKEN') {
-          handleAuthError();
-          return;
-        }
-
-        setError(statusResponse.error?.message || 'Failed to check analysis status');
-        setIsLoading(false);
-        stopPolling();
-        return;
-      }
-
-      // Update progress
-      const newProgress: AnalysisProgress = {
-        status: statusResponse.status || 'pending',
-        progress: statusResponse.progress || 0,
-        currentPhase: statusResponse.currentPhase || 'Initializing',
-        jobId: currentJobId
-      };
-      setProgress(newProgress);
-
-      // Handle completion
-      if (statusResponse.status === 'completed' && statusResponse.results) {
-        setData({
-          success: true,
-          data: statusResponse.results
-        });
-        setIsLoading(false);
-        stopPolling();
-        console.log('Analysis completed successfully for job:', currentJobId);
-      } else if (statusResponse.status === 'failed') {
-        setError(statusResponse.message || 'Analysis failed');
-        setIsLoading(false);
-        stopPolling();
-      }
-      // Continue polling for 'pending' and 'in_progress' statuses
-
-    } catch (err) {
-      if (!isMountedRef.current) return;
-      
-      console.error('Error polling analysis status:', err);
-      setError('Failed to check analysis progress. Please try again.');
-      setIsLoading(false);
-      stopPolling();
-    }
-  }, [handleAuthError, stopPolling, session?.access_token]);
-
-  /**
-   * Starts the polling mechanism
-   */
-  const startPolling = useCallback((currentJobId: string) => {
-    // Clear any existing polling first
-    if (pollingIntervalRef.current !== null) {
-      clearInterval(pollingIntervalRef.current);
-    }
-    
-    // Poll every 2 seconds
-    pollingIntervalRef.current = setInterval(() => {
-      pollAnalysisStatus(currentJobId);
-    }, 2000) as unknown as number;
-
-    // Also poll immediately
-    pollAnalysisStatus(currentJobId);
-  }, [pollAnalysisStatus]);
-
-  /**
-   * Runs the signal analysis for the given ticker using the asynchronous flow
-   * Automatically handles state management, polling, and error scenarios
-   */
-  const runAnalysis = useCallback(async (ticker: string, context: 'investment' | 'trading' = 'investment'): Promise<void> => {
-    // Check authentication
-    if (!user) {
-      handleAuthError();
-      return;
-    }
-
-    // Clear previous state before starting new analysis
+  const runAnalysis = useCallback(async (ticker: string, goal: 'investment' | 'trading', timeframe: string): Promise<void> => {
+    // Set loading state and clear previous data/errors
     setIsLoading(true);
     setError(null);
     setData(null);
-    setProgress(null);
-    setJobId(null);
-    stopPolling();
 
     try {
-      console.log('Starting asynchronous analysis for ticker:', ticker);
-
-      // Get access token from session
-      const accessToken = session?.access_token;
-      if (!accessToken) {
-        handleAuthError();
-        return;
+      // Retrieve the user's Google API key from environment variables
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      if (!apiKey) {
+        throw new Error('VITE_GEMINI_API_KEY environment variable is not set');
       }
 
-      console.log('[DEBUG] Frontend is sending USER_ID:', session?.user?.id);
+      // Create an instance of the analysis service
+      const analysisService = createAnalysisService(apiKey);
 
-      // Start the analysis with access token
-      const startResponse = await apiService.startAnalysis(ticker, context, accessToken);
-
-      if (!isMountedRef.current) return;
-
-      if (!startResponse.success) {
-        // Handle authentication errors
-        if (startResponse.error?.code === 'AUTHENTICATION_ERROR' || 
-            startResponse.error?.code === 'INVALID_TOKEN') {
-          handleAuthError();
-          return;
-        }
-
-        setError(startResponse.error?.message || 'Failed to start analysis');
-        setIsLoading(false);
-        return;
+      // Perform analysis based on goal
+      let result: InvestmentAnalysisResponse;
+      if (goal === 'investment') {
+        result = await analysisService.getInvestmentAnalysis(ticker);
+      } else {
+        result = await analysisService.getTradingAnalysis(ticker, timeframe);
       }
 
-      if (!startResponse.jobId) {
-        setError('Failed to get job ID from analysis service');
-        setIsLoading(false);
-        return;
-      }
-
-      // Store job ID and start polling
-      setJobId(startResponse.jobId);
-      setProgress({
-        status: 'pending',
-        progress: 0,
-        currentPhase: 'Starting analysis',
-        jobId: startResponse.jobId
+      // 🔍 DIAGNOSTIC LOG: Verify what data the UI layer is receiving from analysisService
+      console.log('🔍 [UI-DIAGNOSTIC] Analysis result received by useSignalAnalysis hook:', {
+        ticker: result.ticker,
+        finalScore: result.verdict.finalScore,
+        recommendation: result.verdict.recommendation,
+        fullAnalysisObject: result
       });
 
-      console.log('Analysis started with job ID:', startResponse.jobId);
-      startPolling(startResponse.jobId);
+      // Set the result data
+      setData(result);
 
     } catch (err) {
-      if (!isMountedRef.current) return;
-      
-      console.error('Error starting analysis:', err);
-      setError('Failed to start analysis. Please try again.');
+      // Handle any errors
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      setError(errorMessage);
+      console.error('Analysis error:', err);
+    } finally {
+      // Always set loading to false
       setIsLoading(false);
     }
-  }, [user, session?.access_token, handleAuthError, stopPolling, startPolling]);
+  }, []);
 
   /**
-   * Cancels the current analysis
+   * Cancels the current analysis (clears state)
    */
   const cancelAnalysis = useCallback(() => {
     console.log('Cancelling analysis');
     setIsLoading(false);
     setError(null);
     setData(null);
-    setProgress(null);
-    setJobId(null);
-    stopPolling();
-  }, [stopPolling]);
+  }, []);
+
+  /**
+   * Resets all analysis state (for starting a new analysis)
+   */
+  const resetAnalysis = useCallback(() => {
+    console.log('Resetting analysis state');
+    setIsLoading(false);
+    setError(null);
+    setData(null);
+  }, []);
 
   return {
     data,
     error,
     isLoading,
-    progress,
-    jobId,
     runAnalysis,
     cancelAnalysis,
+    resetAnalysis,
   };
 }

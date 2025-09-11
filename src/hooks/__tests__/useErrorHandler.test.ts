@@ -1,6 +1,6 @@
 import { renderHook, act } from '@testing-library/react';
 import { useErrorHandler } from '../useErrorHandler';
-import { ErrorType, ErrorSeverity } from '../../lib/errorHandler';
+import { ErrorType } from '../../lib/errorHandler';
 import { vi } from 'vitest';
 
 describe('useErrorHandler', () => {

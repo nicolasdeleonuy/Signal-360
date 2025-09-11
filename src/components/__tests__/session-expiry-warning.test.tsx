@@ -1,7 +1,7 @@
 // Migrated to Vitest
-import { render, screen, waitFor, act } from '@testing-library/react'
+import { render, screen, act } from '@testing-library/react'
 import { vi } from 'vitest'
-import type { MockedFunction, MockedObject } from 'vitest'
+import type { MockedFunction } from 'vitest'
 import { SessionExpiryWarning } from '../session-expiry-warning'
 import { useAuth } from '../../contexts/auth-context'
 import { SessionManager } from '../../utils/session-manager'
@@ -11,7 +11,7 @@ vi.mock('../../contexts/auth-context')
 vi.mock('../../utils/session-manager')
 
 const mockUseAuth = useAuth as MockedFunction<typeof useAuth>
-const mockSessionManager = SessionManager as MockedObject<typeof SessionManager>
+const mockSessionManager = vi.mocked(SessionManager)
 
 // Mock interval functions to avoid timer issues
 const mockSetInterval = vi.fn()

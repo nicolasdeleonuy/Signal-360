@@ -1,11 +1,22 @@
 // Migrated to Vitest
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   JEST_PATTERNS,
   TEST_FILE_EXTENSIONS,
   generateMigrationReport,
+  validateFileMigration,
   type MigrationValidationResult
 } from '../migration-validation';
+
+// Mock fs module
+vi.mock('fs', () => ({
+  readFileSync: vi.fn(),
+  readdirSync: vi.fn(),
+  statSync: vi.fn(),
+}));
+
+import { readFileSync } from 'fs';
+const mockReadFileSync = vi.mocked(readFileSync);
 
 describe('Migration Validation Utilities', () => {
   describe('JEST_PATTERNS', () => {

@@ -12,6 +12,7 @@
     "validate-migration": "node scripts/validate-migration.js"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.44.4",
     "axios": "^1.7.2",
     "react": "^18.3.1",

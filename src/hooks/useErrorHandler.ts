@@ -2,7 +2,6 @@ import { useState, useCallback } from 'react';
 import { 
   ClassifiedError, 
   ErrorRecoveryAction, 
-  errorHandler, 
   handleError,
   shouldRetryError,
   getRetryDelay,
@@ -184,9 +183,10 @@ export function useErrorHandler(options: UseErrorHandlerOptions = {}): UseErrorH
 export function useSimpleErrorHandler() {
   const [error, setError] = useState<string | null>(null);
 
-  const handleError = useCallback((errorInput: any) => {
+  const handleErrorCallback = useCallback((errorInput: any) => {
     const classifiedError = handleError(errorInput);
     setError(classifiedError.userMessage);
+    return classifiedError;
   }, []);
 
   const clearError = useCallback(() => {
@@ -195,7 +195,7 @@ export function useSimpleErrorHandler() {
 
   return {
     error,
-    handleError,
+    handleError: handleErrorCallback,
     clearError,
   };
 }

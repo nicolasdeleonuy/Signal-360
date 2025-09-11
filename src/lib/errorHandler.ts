@@ -92,7 +92,7 @@ export class ErrorHandler {
         error?.message?.includes('network') || 
         error?.message?.includes('fetch') ||
         error?.code === 'NETWORK_ERROR',
-      (error) => ({
+      (_error) => ({
         type: ErrorType.NETWORK,
         severity: ErrorSeverity.MEDIUM,
         code: 'NETWORK_ERROR',
@@ -111,7 +111,7 @@ export class ErrorHandler {
         error?.message?.includes('auth') ||
         error?.code === 'AUTHENTICATION_ERROR' ||
         error?.status === 401,
-      (error) => ({
+      (_error) => ({
         type: ErrorType.AUTHENTICATION,
         severity: ErrorSeverity.HIGH,
         code: 'AUTHENTICATION_ERROR',
@@ -128,7 +128,7 @@ export class ErrorHandler {
       (error) => 
         error?.status === 403 ||
         error?.code === 'AUTHORIZATION_ERROR',
-      (error) => ({
+      (_error) => ({
         type: ErrorType.AUTHORIZATION,
         severity: ErrorSeverity.HIGH,
         code: 'AUTHORIZATION_ERROR',
@@ -146,11 +146,11 @@ export class ErrorHandler {
         error?.message?.includes('Ticker symbol') ||
         error?.code === 'VALIDATION_ERROR' ||
         error?.status === 400,
-      (error) => ({
+      (_error) => ({
         type: ErrorType.VALIDATION,
         severity: ErrorSeverity.LOW,
         code: 'VALIDATION_ERROR',
-        userMessage: error?.message || 'Invalid input. Please check your data and try again.',
+        userMessage: _error?.message || 'Invalid input. Please check your data and try again.',
         recoverable: true,
         retryable: false,
         recoveryStrategy: RecoveryStrategy.USER_ACTION,
@@ -164,7 +164,7 @@ export class ErrorHandler {
         error?.message?.includes('timeout') ||
         error?.code === 'TIMEOUT_ERROR' ||
         error?.code === 'ECONNABORTED',
-      (error) => ({
+      (_error) => ({
         type: ErrorType.TIMEOUT,
         severity: ErrorSeverity.MEDIUM,
         code: 'TIMEOUT_ERROR',
@@ -182,7 +182,7 @@ export class ErrorHandler {
       (error) => 
         error?.status === 429 ||
         error?.code === 'RATE_LIMIT_EXCEEDED',
-      (error) => ({
+      (_error) => ({
         type: ErrorType.RATE_LIMIT,
         severity: ErrorSeverity.MEDIUM,
         code: 'RATE_LIMIT_EXCEEDED',
@@ -201,7 +201,7 @@ export class ErrorHandler {
         (error?.status >= 500 && error?.status < 600) ||
         error?.code === 'SERVER_ERROR' ||
         error?.code === 'INTERNAL_ERROR',
-      (error) => ({
+      (_error) => ({
         type: ErrorType.SERVER,
         severity: ErrorSeverity.HIGH,
         code: 'SERVER_ERROR',
@@ -219,7 +219,7 @@ export class ErrorHandler {
       (error) => 
         error?.status === 503 ||
         error?.code === 'SERVICE_UNAVAILABLE',
-      (error) => ({
+      (_error) => ({
         type: ErrorType.SERVICE_UNAVAILABLE,
         severity: ErrorSeverity.HIGH,
         code: 'SERVICE_UNAVAILABLE',

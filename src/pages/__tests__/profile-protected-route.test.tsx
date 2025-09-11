@@ -27,7 +27,8 @@ vi.mock('../../lib/supabase', () => ({
 // Import after mocking
 import { supabase } from '../../lib/supabaseClient'
 const mockSignOut = vi.mocked(supabase.auth.signOut)
-const mockSignInWithPassword = vi.mocked(supabase.auth.signInWithPassword)
+const mockGetSession = vi.mocked(supabase.auth.getSession)
+const mockOnAuthStateChange = vi.mocked(supabase.auth.onAuthStateChange)
 
 function TestApp({ 
   initialEntries = ['/profile'],
@@ -39,20 +40,32 @@ function TestApp({
   const mockUser = hasUser ? {
     id: '123',
     email: 'test@example.com',
+    app_metadata: {},
+    user_metadata: {},
+    aud: 'authenticated',
     created_at: '2023-01-15T10:30:00Z',
+    updated_at: '2023-01-15T10:30:00Z',
+    email_confirmed_at: '2023-01-15T10:30:00Z',
+    phone: undefined,
+    confirmed_at: '2023-01-15T10:30:00Z',
     last_sign_in_at: '2023-12-01T14:20:00Z',
+    role: 'authenticated'
   } : null
 
-  const mockSession = hasUser ? {
+  const mockSession = hasUser && mockUser ? {
     user: mockUser,
-    access_token: 'token'
+    access_token: 'token',
+    refresh_token: 'refresh-token',
+    expires_in: 3600,
+    token_type: 'bearer',
+    expires_at: Math.floor(Date.now() / 1000) + 3600
   } : null
 
   // Mock the session based on hasUser
-  supabase.auth.getSession.mockResolvedValue({
+  mockGetSession.mockResolvedValue({
     data: { session: mockSession },
     error: null,
-  })
+  } as any)
 
   return (
     <MemoryRouter initialEntries={initialEntries}>
@@ -93,7 +106,7 @@ describe('ProfilePage with ProtectedRoute', () => {
     render(<TestApp hasUser={false} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Sign In')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Sign In' })).toBeInTheDocument()
     }, { timeout: 3000 })
 
     expect(screen.queryByText('Welcome to Signal-360')).not.toBeInTheDocument()
@@ -124,10 +137,10 @@ describe('ProfilePage with ProtectedRoute', () => {
   it('should maintain protection even after auth state changes', async () => {
     let authStateCallback: MockAuthCallback
 
-    supabase.auth.onAuthStateChange.mockImplementation((callback: MockAuthCallback) => {
+    mockOnAuthStateChange.mockImplementation((callback: MockAuthCallback) => {
       authStateCallback = callback
       return {
-        data: { subscription: { unsubscribe: vi.fn() } },
+        data: { subscription: { id: 'test-sub-1', callback, unsubscribe: vi.fn() } },
       }
     })
 
@@ -141,13 +154,23 @@ describe('ProfilePage with ProtectedRoute', () => {
     authStateCallback!('SIGNED_OUT', null)
 
     await waitFor(() => {
-      expect(screen.getByText('Sign In')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Sign In' })).toBeInTheDocument()
     })
 
     expect(screen.queryByText('Welcome to Signal-360')).not.toBeInTheDocument()
   })
 
   it('should handle session expiry gracefully', async () => {
+    let authStateCallback: MockAuthCallback
+
+    // Set up the callback before rendering
+    mockOnAuthStateChange.mockImplementation((callback: MockAuthCallback) => {
+      authStateCallback = callback
+      return {
+        data: { subscription: { id: 'test-sub-2', callback, unsubscribe: vi.fn() } },
+      }
+    })
+
     render(<TestApp hasUser={true} />)
 
     await waitFor(() => {
@@ -155,25 +178,16 @@ describe('ProfilePage with ProtectedRoute', () => {
     })
 
     // Simulate session expiry by changing the mock
-    supabase.auth.getSession.mockResolvedValue({
+    mockGetSession.mockResolvedValue({
       data: { session: null },
       error: null,
-    })
-
-    // Trigger a re-render or auth state change
-    let authStateCallback: MockAuthCallback
-    supabase.auth.onAuthStateChange.mockImplementation((callback: MockAuthCallback) => {
-      authStateCallback = callback
-      return {
-        data: { subscription: { unsubscribe: vi.fn() } },
-      }
     })
 
     // Simulate token expired event
     authStateCallback!('TOKEN_REFRESHED', null)
 
     await waitFor(() => {
-      expect(screen.getByText('Sign In')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Sign In' })).toBeInTheDocument()
     })
   })
 

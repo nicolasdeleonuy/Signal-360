@@ -1,6 +1,6 @@
 // --- START OF REPLACEMENT CODE FOR apiService.ts ---
 
-import axios, { AxiosError } from 'axios';
+// Removed unused axios imports
 import { supabase } from './supabaseClient';
 import { errorHandler, ClassifiedError, shouldRetryError, getRetryDelay } from './errorHandler';
 
@@ -176,118 +176,9 @@ class ApiService {
     };
   }
 
-  /**
-   * Legacy transform error method for backward compatibility
-   */
-  private legacyTransformError(error: any): ApiError {
-    // Handle Supabase function errors
-    if (error?.message) {
-      if (error.message.includes('JWT') || error.message.includes('auth')) {
-        return {
-          code: 'AUTHENTICATION_ERROR',
-          message: 'Authentication failed. Please log in again.',
-          details: error.message,
-        };
-      }
+  // Removed unused legacyTransformError method
 
-      if (error.message.includes('network') || error.message.includes('fetch')) {
-        return {
-          code: 'NETWORK_ERROR',
-          message: 'Network error. Please check your connection and try again.',
-          details: error.message,
-        };
-      }
-
-      if (error.message.includes('timeout')) {
-        return {
-          code: 'TIMEOUT_ERROR',
-          message: 'Request timed out. The analysis is taking longer than expected. Please try again.',
-          details: error.message,
-        };
-      }
-    }
-
-    // Handle axios errors
-    if (axios.isAxiosError(error)) {
-      const axiosError = error as AxiosError;
-      
-      if (axiosError.code === 'ECONNABORTED') {
-        return {
-          code: 'TIMEOUT_ERROR',
-          message: 'Request timed out. Please try again.',
-          details: axiosError.message,
-        };
-      }
-
-      if (axiosError.response?.status === 401) {
-        return {
-          code: 'AUTHENTICATION_ERROR',
-          message: 'Authentication failed. Please log in again.',
-          details: axiosError.message,
-        };
-      }
-
-      if (axiosError.response?.status === 403) {
-        return {
-          code: 'AUTHORIZATION_ERROR',
-          message: 'Access denied. Please check your permissions.',
-          details: axiosError.message,
-        };
-      }
-
-      if (axiosError.response && axiosError.response.status >= 500) {
-        return {
-          code: 'SERVER_ERROR',
-          message: 'Server error. Please try again later.',
-          details: axiosError.message,
-        };
-      }
-    }
-
-    // Handle Edge Function error responses
-    if (error?.error?.code) {
-      return this.getErrorMessage(error.error.code, error.error.message);
-    }
-
-    // Handle validation errors
-    if (error instanceof Error) {
-      if (error.message.includes('ticker') || error.message.includes('Ticker')) {
-        return {
-          code: 'VALIDATION_ERROR',
-          message: error.message,
-        };
-      }
-    }
-
-    // Default error
-    return {
-      code: 'UNKNOWN_ERROR',
-      message: 'An unexpected error occurred. Please try again.',
-      details: error?.message || String(error),
-    };
-  }
-
-  /**
-   * Maps error codes to user-friendly messages
-   */
-  private getErrorMessage(errorCode: string, originalMessage?: string): ApiError {
-    const errorMap: Record<string, string> = {
-      'MISSING_TOKEN': 'Authentication failed. Please log in again.',
-      'INVALID_TOKEN': 'Authentication failed. Please log in again.',
-      'VALIDATION_ERROR': 'Invalid ticker symbol. Please enter a valid stock symbol (1-5 letters).',
-      'API_KEY_NOT_CONFIGURED': 'Google API key not configured. Please add your API key in the profile section.',
-      'DATABASE_ERROR': 'Database service temporarily unavailable. Please try again later.',
-      'INTERNAL_ERROR': 'Analysis service temporarily unavailable. Please try again later.',
-      'METHOD_NOT_ALLOWED': 'Invalid request method. Please try again.',
-      'RATE_LIMIT_EXCEEDED': 'Too many requests. Please wait a moment and try again.',
-      'SERVICE_UNAVAILABLE': 'Analysis service temporarily unavailable. Please try again later.',
-    };
-
-    return {
-      code: errorCode,
-      message: errorMap[errorCode] || originalMessage || 'An unexpected error occurred. Please try again.',
-    };
-  }
+  // Removed unused getErrorMessage method
 
   /**
    * Validates ticker input

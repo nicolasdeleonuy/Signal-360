@@ -53,7 +53,7 @@ describe('SignUpPage Integration', () => {
 
     // Wait for auth to initialize
     await waitFor(() => {
-      expect(screen.getByText('Create Account')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Create Account' })).toBeInTheDocument()
     })
 
     const emailInput = screen.getByLabelText('Email Address')
@@ -78,17 +78,20 @@ describe('SignUpPage Integration', () => {
     const user = userEvent.setup()
     const supabaseError = {
       message: 'User already registered',
-      status: 422,
+      code: 'user_already_registered',
+      __isAuthError: true,
+      name: 'AuthError',
+      status: 422
     }
     mockSignUp.mockResolvedValue({
       data: { user: null, session: null },
-      error: supabaseError,
+      error: supabaseError as any,
     })
 
     render(<TestApp />)
 
     await waitFor(() => {
-      expect(screen.getByText('Create Account')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Create Account' })).toBeInTheDocument()
     })
 
     const emailInput = screen.getByLabelText('Email Address')
@@ -125,7 +128,7 @@ describe('SignUpPage Integration', () => {
     render(<TestApp />)
 
     expect(screen.getByText('Loading...')).toBeInTheDocument()
-    expect(screen.queryByText('Create Account')).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Create Account' })).not.toBeInTheDocument()
   })
 
   it('should handle network errors gracefully', async () => {
@@ -135,7 +138,7 @@ describe('SignUpPage Integration', () => {
     render(<TestApp />)
 
     await waitFor(() => {
-      expect(screen.getByText('Create Account')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Create Account' })).toBeInTheDocument()
     })
 
     const emailInput = screen.getByLabelText('Email Address')
@@ -158,7 +161,7 @@ describe('SignUpPage Integration', () => {
     render(<TestApp />)
 
     await waitFor(() => {
-      expect(screen.getByText('Create Account')).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Create Account' })).toBeInTheDocument()
     })
 
     const submitButton = screen.getByRole('button', { name: 'Create Account' })

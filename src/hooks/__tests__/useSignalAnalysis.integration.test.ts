@@ -43,7 +43,7 @@ describe('useSignalAnalysis - API Service Integration', () => {
     const { result } = renderHook(() => useSignalAnalysis());
 
     await act(async () => {
-      await result.current.runAnalysis('AAPL', 'investment');
+      await result.current.runAnalysis('AAPL', 'investment', '1M');
     });
 
     // Verify apiService was called with correct parameters
@@ -70,7 +70,7 @@ describe('useSignalAnalysis - API Service Integration', () => {
     const { result } = renderHook(() => useSignalAnalysis());
 
     await act(async () => {
-      await result.current.runAnalysis('INVALID_TICKER');
+      await result.current.runAnalysis('INVALID_TICKER', 'investment', '1M');
     });
 
     // Verify apiService was called
@@ -88,7 +88,7 @@ describe('useSignalAnalysis - API Service Integration', () => {
     const { result } = renderHook(() => useSignalAnalysis());
 
     await act(async () => {
-      await result.current.runAnalysis('AAPL');
+      await result.current.runAnalysis('AAPL', 'investment', '1M');
     });
 
     // Verify error state is set correctly
@@ -115,7 +115,7 @@ describe('useSignalAnalysis - API Service Integration', () => {
     const { result } = renderHook(() => useSignalAnalysis());
 
     await act(async () => {
-      await result.current.runAnalysis('TSLA', 'trading');
+      await result.current.runAnalysis('TSLA', 'trading', '1D');
     });
 
     // Verify apiService was called with trading context

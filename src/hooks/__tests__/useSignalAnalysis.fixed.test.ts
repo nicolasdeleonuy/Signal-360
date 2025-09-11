@@ -56,8 +56,7 @@ describe('useSignalAnalysis - Cleanup Fix', () => {
     expect(result.current.data).toBeNull();
     expect(result.current.error).toBeNull();
     expect(result.current.isLoading).toBe(false);
-    expect(result.current.progress).toBeNull();
-    expect(result.current.jobId).toBeNull();
+    // Removed progress and jobId checks as they don't exist in the interface
     expect(typeof result.current.runAnalysis).toBe('function');
     expect(typeof result.current.cancelAnalysis).toBe('function');
   });

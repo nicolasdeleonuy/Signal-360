@@ -29,7 +29,8 @@ import { MemoryRouter } from 'react-router-dom'
 import App from '../App'
 import { MockAuthCallback } from '../types/mocks'
 
-const { supabase } = await import('../lib/supabaseClient')
+// Import supabase for mocking
+await import('../lib/supabaseClient')
 
 // Mock navigator.onLine
 Object.defineProperty(navigator, 'onLine', {

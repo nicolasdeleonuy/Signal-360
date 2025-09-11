@@ -1,6 +1,6 @@
 // Migration validation utilities for Jest to Vitest migration
 import { readFileSync, readdirSync, statSync } from 'fs';
-import { join, extname } from 'path';
+import { join } from 'path';
 
 /**
  * Jest syntax patterns to search for during migration validation
@@ -74,7 +74,6 @@ export function findTestFiles(directory: string): string[] {
             scanDirectory(fullPath);
           }
         } else if (stat.isFile()) {
-          const ext = extname(item);
           const isTestFile = TEST_FILE_EXTENSIONS.some(testExt => 
             item.endsWith(testExt)
           );

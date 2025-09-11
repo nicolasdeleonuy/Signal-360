@@ -157,6 +157,14 @@ describe('ProfilePage Integration', () => {
   it('should handle auth state changes', async () => {
     let authStateCallback: (event: string, session: any) => void
 
+    // Set up the mock before rendering
+    const mockOnAuthStateChange = vi.fn().mockImplementation((callback) => {
+      authStateCallback = callback
+      return {
+        data: { subscription: { unsubscribe: vi.fn() } },
+      }
+    })
+
     vi.doMock('../../lib/supabase', () => ({
       supabase: {
         auth: {
@@ -164,12 +172,7 @@ describe('ProfilePage Integration', () => {
             data: { session: null },
             error: null,
           }),
-          onAuthStateChange: vi.fn().mockImplementation((callback) => {
-            authStateCallback = callback
-            return {
-              data: { subscription: { unsubscribe: vi.fn() } },
-            }
-          }),
+          onAuthStateChange: mockOnAuthStateChange,
           signUp: vi.fn(),
           signInWithPassword: vi.fn(),
           signOut: mockSignOut,
@@ -178,6 +181,11 @@ describe('ProfilePage Integration', () => {
     }))
 
     render(<TestApp />)
+
+    // Wait for the callback to be set up
+    await waitFor(() => {
+      expect(mockOnAuthStateChange).toHaveBeenCalled()
+    })
 
     // Initially should show access denied
     await waitFor(() => {
@@ -195,7 +203,10 @@ describe('ProfilePage Integration', () => {
       access_token: 'token',
     }
 
-    authStateCallback!('SIGNED_IN', mockSession)
+    // Ensure callback is defined before calling
+    if (authStateCallback) {
+      authStateCallback('SIGNED_IN', mockSession)
+    }
 
     await waitFor(() => {
       expect(screen.getByText('Welcome to Signal-360')).toBeInTheDocument()

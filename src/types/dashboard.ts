@@ -116,8 +116,8 @@ export interface ESGAnalysisOutput {
 export interface AnalysisResult {
   synthesisScore: number; // A score from 0 to 100
   recommendation: 'BUY' | 'SELL' | 'HOLD';
-  convergenceFactors: string[]; // Key points supporting the recommendation
-  divergenceFactors: string[]; // Key risks or counterpoints
+  bullishFactors: string[]; // Key points supporting a bullish view
+  bearishFactors: string[]; // Key risks or bearish counterpoints
 }
 
 export interface AnalysisResults {

@@ -9,7 +9,7 @@
 //
 // =============================================================================
 
-import { vi } from 'vitest';
+import { vi, type Mock } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -65,9 +65,9 @@ describe('Requirements Validation Tests', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (SessionManager.initialize as vi.Mock).mockResolvedValue({ session: null, user: null });
+    (SessionManager.initialize as Mock).mockResolvedValue({ session: null, user: null });
     // Damos un valor por defecto para que no falle
-    (SessionManager.getTimeRemaining as vi.Mock).mockReturnValue(3600); 
+    (SessionManager.getTimeRemaining as Mock).mockReturnValue(3600); 
   });
 
   const renderApp = (initialRoute = '/') => {
@@ -79,13 +79,13 @@ describe('Requirements Validation Tests', () => {
   };
   
   const mockAuthenticatedSession = () => {
-    (SessionManager.initialize as vi.Mock).mockResolvedValue({ session: mockSession, user: mockSession.user });
+    (SessionManager.initialize as Mock).mockResolvedValue({ session: mockSession, user: mockSession.user });
   };
 
   describe('Requirement 1: User Registration', () => {
     it('Should create account and redirect to dashboard on success', async () => {
       const user = userEvent.setup();
-      (supabase.auth.signUp as vi.Mock).mockResolvedValue({ data: { user: mockUser, session: mockSession }, error: null });
+      (supabase.auth.signUp as Mock).mockResolvedValue({ data: { user: mockUser, session: mockSession }, error: null });
       
       renderApp('/sign-up');
       await waitFor(() => expect(screen.getByRole('heading', { name: /Create an account/i })).toBeInTheDocument());
@@ -112,7 +112,7 @@ describe('Requirements Validation Tests', () => {
   describe('Requirement 2 & 4: User Login & Session Management', () => {
     it('Should authenticate and redirect to dashboard', async () => {
         const user = userEvent.setup();
-        (supabase.auth.signInWithPassword as vi.Mock).mockResolvedValue({ data: { user: mockUser, session: mockSession }, error: null });
+        (supabase.auth.signInWithPassword as Mock).mockResolvedValue({ data: { user: mockUser, session: mockSession }, error: null });
 
         renderApp('/login');
         await waitFor(() => expect(screen.getByRole('heading', { name: /sign in/i })).toBeInTheDocument());
@@ -166,7 +166,7 @@ describe('Requirements Validation Tests', () => {
     it('Should log out and redirect to login', async () => {
         const user = userEvent.setup();
         mockAuthenticatedSession();
-        (supabase.auth.signOut as vi.Mock).mockResolvedValue({ error: null });
+        (supabase.auth.signOut as Mock).mockResolvedValue({ error: null });
 
         renderApp('/profile');
         await waitFor(() => expect(screen.getByRole('heading', { name: /profile/i })).toBeInTheDocument());

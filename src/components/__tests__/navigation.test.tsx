@@ -1,6 +1,6 @@
 // Migrated to Vitest
 import { render, screen } from '@testing-library/react'
-import { vi } from 'vitest'
+import { vi, type MockedFunction } from 'vitest'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { Navigation } from '../navigation'
@@ -8,7 +8,7 @@ import { useAuth } from '../../contexts/auth-context'
 
 // Mock the auth context
 vi.mock('../../contexts/auth-context')
-const mockUseAuth = useAuth as vi.MockedFunction<typeof useAuth>
+const mockUseAuth = useAuth as MockedFunction<typeof useAuth>
 
 function renderNavigation(initialEntries = ['/']) {
   return render(
