@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/auth-context';
-import { useSignalAnalysis } from '../hooks/useSignalAnalysis';
 import { TickerSearch } from '../components/search/TickerSearch';
 
 // Professional SVG Icons with electric accent colors
@@ -123,16 +123,11 @@ function PremiumFeatureCard({ onPremiumClick }: PremiumFeatureCardProps) {
 
 export function DashboardPage() {
   const { user, signOut } = useAuth();
-  const { runAnalysis } = useSignalAnalysis();
+  const navigate = useNavigate();
 
-  const handleTickerSelection = useCallback(async (ticker: string, _companyName: string) => {
-    try {
-      // Use default investment goal and timeframe for the guided experience
-      await runAnalysis(ticker, 'investment', '1M');
-    } catch (error) {
-      console.error('Analysis error:', error);
-    }
-  }, [runAnalysis]);
+  const handleTickerSelection = useCallback((ticker: string, _companyName: string) => {
+    navigate(`/analysis/${ticker}`);
+  }, [navigate]);
 
   const handlePremiumFeatureClick = useCallback(() => {
     console.log('Premium feature clicked');

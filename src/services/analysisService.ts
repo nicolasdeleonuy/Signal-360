@@ -2,214 +2,214 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Types for the analysis response
-// Note: priceTimestamp is now included for data freshness verification
-export interface MarketData {
-  companyName: string;
-  currentPrice: number;
-  currency: string;
-  sharesOutstanding: number;
-  marketCap: number;
-  sector: string;
-  industry: string;
-  exchange: string;
-  priceTimestamp?: string; // Inspired by Eco Corporativo for data freshness
+// Precise TypeScript interfaces matching our schema
+export interface AnalysisVerdict {
+  synthesisProfile: string;
+  synthesisScore: number;
+  strategistVerdict: string;
+  convergenceFactors: string[];
+  divergenceFactors: string[];
 }
 
 export interface FundamentalAnalysis {
   businessModel: string;
   economicMoat: string;
+  managementReview: string;
   keyFinancialRatios: {
-    peRatio: number;
-    pbRatio: number;
-    debtToEquity: number;
-    roe: number;
-    roic: number;
-    currentRatio: number;
+    "Price/Earnings (P/E)": { value: string; explanation: string };
+    "Return on Equity (ROE)": { value: string; explanation: string };
+    "Debt-to-Equity": { value: string; explanation: string };
+    "Net Profit Margin": { value: string; explanation: string };
   };
-  dcfAssumptions: {
-    growthRate: number;
-    discountRate: number;
-    terminalGrowthRate: number;
-    intrinsicValue: number;
+  dcfAnalysis: {
+    intrinsicValuePerShare: number;
+    assumptions: {
+      revenueGrowthRate: string;
+      ebitMargin: string;
+      discountRate: string;
+      perpetualGrowthRate: string;
+      taxRate: string;
+    };
   };
-  fundamentalScore: number;
-  strengths: string[];
-  weaknesses: string[];
 }
 
 export interface SentimentAnalysis {
-  marketPulse: string;
-  newsEchoes: string[];
-  socialMediaSentiment: string;
-  analystRatings: {
-    buy: number;
-    hold: number;
-    sell: number;
-    averageTarget: number;
-  };
   sentimentScore: number;
-  keyDrivers: string[];
+  sentimentTrend: "Improving" | "Stable" | "Worsening";
+  keyEchoes: Array<{
+    source: string;
+    summary: string;
+    individualSentimentScore: number;
+  }>;
 }
 
 export interface TechnicalAnalysis {
-  trend: 'uptrend' | 'downtrend' | 'sideways';
-  support: number;
-  resistance: number;
-  technicalIndicators: {
-    rsi: number;
-    macd: string;
-    movingAverages: {
-      sma20: number;
-      sma50: number;
-      sma200: number;
-    };
+  overallTrend: "Uptrend" | "Downtrend" | "Sideways";
+  technicalSummary: string;
+  keyLevels: {
+    support: string;
+    resistance: string;
   };
-  technicalScore: number;
-  timingConfirmation: string;
 }
 
-export interface AnalysisVerdict {
-  finalScore: number;
-  recommendation: 'Strong Buy' | 'Buy' | 'Hold' | 'Sell' | 'Strong Sell';
-  bullishFactors: string[];
-  bearishFactors: string[];
-  riskLevel: 'Low' | 'Medium' | 'High';
-  timeHorizon: string;
-  keyInsights: string[];
+export interface MarketData {
+  companyName: string;
+  currentPrice: number;
 }
 
 export interface InvestmentAnalysisResponse {
-  ticker: string;
-  marketData: MarketData;
+  verdict: AnalysisVerdict;
   fundamental: FundamentalAnalysis;
   sentiment: SentimentAnalysis;
   technical: TechnicalAnalysis;
-  verdict: AnalysisVerdict;
-  analysisTimestamp: string;
+  ticker: string;
+  marketData: MarketData;
 }
 
-// JSON Schema for Gemini's structured response (now includes priceTimestamp)
-const ANALYSIS_RESPONSE_SCHEMA = {
+// Main interface for the service
+export interface IAnalysisService {
+  getInvestmentAnalysis(ticker: string): Promise<InvestmentAnalysisResponse>;
+  getTradingAnalysis(ticker: string, timeframe: string): Promise<InvestmentAnalysisResponse>;
+}
+
+// The definitive schema that dictates the AI's output structure.
+const ANALYSIS_RESPONSE_SCHEMA_V5 = {
   type: "object",
   properties: {
+    verdict: {
+      type: "object",
+      description: "The final synthesized verdict from the Head of Strategy.",
+      properties: {
+        synthesisProfile: { type: "string", description: "A concise, compelling title for the investment thesis (e.g., 'Quality Compounder at a Fair Price')." },
+        synthesisScore: { type: "number", description: "The final conviction score (0-100) based on the balance of convergence and divergence." },
+        strategistVerdict: { type: "string", description: "The final narrative summary explaining the 'why' behind the thesis in clear, direct language." },
+        convergenceFactors: { type: "array", items: { type: "string" }, description: "List of key points where fundamental, sentiment, and technical analyses align and support each other." },
+        divergenceFactors: { type: "array", items: { type: "string" }, description: "List of key risks and red flags where the different analysis types conflict." }
+      },
+      required: ["synthesisProfile", "synthesisScore", "strategistVerdict", "convergenceFactors", "divergenceFactors"]
+    },
+    fundamental: {
+      type: "object",
+      description: "The deep fundamental analysis of the business quality and valuation.",
+      properties: {
+        businessModel: { type: "string" },
+        economicMoat: { type: "string" },
+        managementReview: { type: "string" },
+        keyFinancialRatios: {
+          type: "object",
+          description: "Key ratios with explanations.",
+          properties: {
+            "Price/Earnings (P/E)": { 
+              type: "object", 
+              properties: { 
+                "value": { type: "string" }, 
+                "explanation": { type: "string" } 
+              },
+              required: ["value", "explanation"]
+            },
+            "Return on Equity (ROE)": { 
+              type: "object", 
+              properties: { 
+                "value": { type: "string" }, 
+                "explanation": { type: "string" } 
+              },
+              required: ["value", "explanation"]
+            },
+            "Debt-to-Equity": { 
+              type: "object", 
+              properties: { 
+                "value": { type: "string" }, 
+                "explanation": { type: "string" } 
+              },
+              required: ["value", "explanation"]
+            },
+            "Net Profit Margin": { 
+              type: "object", 
+              properties: { 
+                "value": { type: "string" }, 
+                "explanation": { type: "string" } 
+              },
+              required: ["value", "explanation"]
+            }
+          },
+          required: ["Price/Earnings (P/E)", "Return on Equity (ROE)", "Debt-to-Equity", "Net Profit Margin"]
+        },
+        dcfAnalysis: {
+          type: "object",
+          description: "Discounted Cash Flow analysis results.",
+          properties: {
+            intrinsicValuePerShare: { type: "number" },
+            assumptions: {
+              type: "object",
+              description: "The key assumptions used in the DCF model.",
+              properties: {
+                "revenueGrowthRate": { type: "string" },
+                "ebitMargin": { type: "string" },
+                "discountRate": { type: "string" },
+                "perpetualGrowthRate": { type: "string" },
+                "taxRate": { type: "string" }
+              },
+              required: ["revenueGrowthRate", "ebitMargin", "discountRate", "perpetualGrowthRate", "taxRate"]
+            }
+          },
+          required: ["intrinsicValuePerShare", "assumptions"]
+        }
+      },
+      required: ["businessModel", "economicMoat", "managementReview", "keyFinancialRatios", "dcfAnalysis"]
+    },
+    sentiment: {
+      type: "object",
+      description: "The analysis of market sentiment and news flow.",
+      properties: {
+        sentimentScore: { type: "number", description: "The overall market sentiment score (0-100)." },
+        sentimentTrend: { type: "string", enum: ["Improving", "Stable", "Worsening"], description: "The current trend of the market sentiment." },
+        keyEchoes: {
+          type: "array",
+          description: "The top 3 most relevant news or social media mentions.",
+          items: {
+            type: "object",
+            properties: {
+              source: { type: "string" },
+              summary: { type: "string" },
+              individualSentimentScore: { type: "number" }
+            },
+            required: ["source", "summary", "individualSentimentScore"]
+          }
+        }
+      },
+      required: ["sentimentScore", "sentimentTrend", "keyEchoes"]
+    },
+    technical: {
+      type: "object",
+      description: "The technical analysis for a long-term investor's entry point.",
+      properties: {
+        overallTrend: { type: "string", enum: ["Uptrend", "Downtrend", "Sideways"] },
+        technicalSummary: { type: "string", description: "A narrative explaining the current technical posture for a long-term investor." },
+        keyLevels: {
+          type: "object",
+          properties: {
+            support: { type: "string" },
+            resistance: { type: "string" }
+          },
+          required: ["support", "resistance"]
+        }
+      },
+      required: ["overallTrend", "technicalSummary", "keyLevels"]
+    },
     ticker: { type: "string" },
     marketData: {
       type: "object",
       properties: {
         companyName: { type: "string" },
-        currentPrice: { type: "number" },
-        currency: { type: "string" },
-        sharesOutstanding: { type: "number" },
-        marketCap: { type: "number" },
-        sector: { type: "string" },
-        industry: { type: "string" },
-        exchange: { type: "string" },
-        priceTimestamp: { type: "string", format: "date-time" } // Added field
+        currentPrice: { type: "number" }
       },
-      required: ["companyName", "currentPrice", "currency", "sharesOutstanding", "marketCap", "sector", "industry", "exchange"]
-    },
-    fundamental: {
-      type: "object",
-      properties: {
-        businessModel: { type: "string" },
-        economicMoat: { type: "string" },
-        keyFinancialRatios: {
-          type: "object",
-          properties: {
-            peRatio: { type: "number" },
-            pbRatio: { type: "number" },
-            debtToEquity: { type: "number" },
-            roe: { type: "number" },
-            roic: { type: "number" },
-            currentRatio: { type: "number" }
-          },
-          required: ["peRatio", "pbRatio", "debtToEquity", "roe", "roic", "currentRatio"]
-        },
-        dcfAssumptions: {
-          type: "object",
-          properties: {
-            growthRate: { type: "number" },
-            discountRate: { type: "number" },
-            terminalGrowthRate: { type: "number" },
-            intrinsicValue: { type: "number" }
-          },
-          required: ["growthRate", "discountRate", "terminalGrowthRate", "intrinsicValue"]
-        },
-        fundamentalScore: { type: "number" },
-        strengths: { type: "array", items: { type: "string" } },
-        weaknesses: { type: "array", items: { type: "string" } }
-      },
-      required: ["businessModel", "economicMoat", "keyFinancialRatios", "dcfAssumptions", "fundamentalScore", "strengths", "weaknesses"]
-    },
-    sentiment: {
-      type: "object",
-      properties: {
-        marketPulse: { type: "string" },
-        newsEchoes: { type: "array", items: { type: "string" } },
-        socialMediaSentiment: { type: "string" },
-        analystRatings: {
-          type: "object",
-          properties: {
-            buy: { type: "number" },
-            hold: { type: "number" },
-            sell: { type: "number" },
-            averageTarget: { type: "number" }
-          },
-          required: ["buy", "hold", "sell", "averageTarget"]
-        },
-        sentimentScore: { type: "number" },
-        keyDrivers: { type: "array", items: { type: "string" } }
-      },
-      required: ["marketPulse", "newsEchoes", "socialMediaSentiment", "analystRatings", "sentimentScore", "keyDrivers"]
-    },
-    technical: {
-      type: "object",
-      properties: {
-        trend: { type: "string", enum: ["uptrend", "downtrend", "sideways"] },
-        support: { type: "number" },
-        resistance: { type: "number" },
-        technicalIndicators: {
-          type: "object",
-          properties: {
-            rsi: { type: "number" },
-            macd: { type: "string" },
-            movingAverages: {
-              type: "object",
-              properties: {
-                sma20: { type: "number" },
-                sma50: { type: "number" },
-                sma200: { type: "number" }
-              },
-              required: ["sma20", "sma50", "sma200"]
-            }
-          },
-          required: ["rsi", "macd", "movingAverages"]
-        },
-        technicalScore: { type: "number" },
-        timingConfirmation: { type: "string" }
-      },
-      required: ["trend", "support", "resistance", "technicalIndicators", "technicalScore", "timingConfirmation"]
-    },
-    verdict: {
-      type: "object",
-      properties: {
-        finalScore: { type: "number" },
-        recommendation: { type: "string", enum: ["Strong Buy", "Buy", "Hold", "Sell", "Strong Sell"] },
-        bullishFactors: { type: "array", items: { type: "string" } },
-        bearishFactors: { type: "array", items: { type: "string" } },
-        riskLevel: { type: "string", enum: ["Low", "Medium", "High"] },
-        timeHorizon: { type: "string" },
-        keyInsights: { type: "array", items: { type: "string" } }
-      },
-      required: ["finalScore", "recommendation", "bullishFactors", "bearishFactors", "riskLevel", "timeHorizon", "keyInsights"]
-    },
-    analysisTimestamp: { type: "string" }
+      required: ["companyName", "currentPrice"]
+    }
   },
-  required: ["ticker", "marketData", "fundamental", "sentiment", "technical", "verdict", "analysisTimestamp"]
+  required: ["verdict", "fundamental", "sentiment", "technical", "ticker", "marketData"]
 };
 
-export class AnalysisService {
+export class AnalysisService implements IAnalysisService {
   private genAI: GoogleGenerativeAI;
 
   constructor(apiKey: string) {
@@ -218,45 +218,51 @@ export class AnalysisService {
 
   async getInvestmentAnalysis(ticker: string): Promise<InvestmentAnalysisResponse> {
     try {
-      console.log(`[AnalysisService] Starting investment analysis for ${ticker}...`);
       const marketData = await this.getMarketData(ticker);
-      console.log(`[AnalysisService] Market data received for ${ticker}.`, marketData);
       const analysis = await this.performInvestmentAnalysis(ticker, marketData);
-      console.log(`[AnalysisService] Full analysis received for ${ticker}.`, analysis);
       return analysis;
     } catch (error) {
-      // --- ENHANCED ERROR LOGGING ---
       console.error(`[AnalysisService] CRITICAL FAILURE in getInvestmentAnalysis for ${ticker}:`, error);
-
-      // Check if the error is from Gemini API and log details if possible
       if (error && typeof error === 'object' && 'message' in error) {
         console.error('[AnalysisService] Detailed Error Message:', (error as Error).message);
-        if ('stack' in error) {
-          console.error('[AnalysisService] Error Stack:', (error as Error).stack);
-        }
       }
-
-      throw new Error(`[FRONTEND-VISIBLE ERROR] Analysis failed for ${ticker}. Check console for details.`);
+      throw new Error(`[FRONTEND-VISIBLE ERROR] Analysis failed for ${ticker}. The new prompt may have issues.`);
     }
   }
 
   async getTradingAnalysis(ticker: string, timeframe: string): Promise<InvestmentAnalysisResponse> {
+    // For now, trading analysis uses the same logic as investment analysis
+    // In the future, this could have different prompts and schemas
+    return this.getInvestmentAnalysis(ticker);
+  }
+
+  private async getMarketData(ticker: string): Promise<Record<string, any>> {
+    // This function remains the same as before
+    const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const prompt = `You are a specialized, high-frequency financial data feed API...`; // Abridged for clarity, use the existing prompt
+    const request = {
+      contents: [{ role: 'user', parts: [{ text: this.buildMarketDataPrompt(ticker) }] }],
+      tools: [{ google_search_retrieval: {} }],
+      generationConfig: { temperature: 0.1, maxOutputTokens: 2048 }
+    };
+
     try {
-      const marketData = await this.getMarketData(ticker);
-      const analysis = await this.performTradingAnalysis(ticker, marketData, timeframe);
-      return analysis;
-    } catch (error) {
-      console.error('Trading analysis failed:', error);
-      throw new Error(`Failed to analyze ${ticker} for trading: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // @ts-ignore
+      const result = await model.generateContent(request);
+      const responseText = result.response.text();
+      const marketData = this.parseMarketData(responseText);
+      if (marketData.currentPrice === -1 || marketData.priceTimestamp === null) {
+        throw new Error(`Could not retrieve a live market price for ${ticker}.`);
+      }
+      return marketData;
+    } catch (apiError) {
+      console.error(`[AnalysisService] Gemini API call failed for ${ticker}:`, apiError);
+      throw new Error(`Failed to fetch live market data: ${apiError instanceof Error ? apiError.message : 'Unknown API error'}`);
     }
   }
 
-  private async getMarketData(ticker: string): Promise<MarketData> {
-    const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-    // --- CERBERUS PROMPT v1.0 ---
-    // This prompt synthesizes techniques from Value Investor's Compass, Eco Corporativo, and QuantumLeap Speculator.
-    const prompt = `
+  private buildMarketDataPrompt(ticker: string): string {
+    return `
 You are a specialized, high-frequency financial data feed API. Your sole function is to execute a real-time web search to fetch the most current, live trading price and associated data for the stock ticker "${ticker}".
 
 **CRITICAL DIRECTIVES:**
@@ -278,150 +284,84 @@ The JSON object you return must conform to the following structure. The instruct
   "exchange": "The primary stock exchange where the ticker is traded (e.g., 'NASDAQ').",
   "priceTimestamp": "CRITICAL: The exact timestamp of the price quote you just retrieved. Must be in strict ISO 8601 format with timezone. If a live price is unavailable, return null."
 }`;
-
-    // Configure the request with the correct tool name and optimal settings
-    const request = {
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      tools: [{
-        google_search_retrieval: {}, // Correct tool name as specified by the API
-      }],
-      generationConfig: {
-        temperature: 0.1, // Low temperature for factual data retrieval
-        maxOutputTokens: 2048, // Sufficient for JSON response
-      }
-    };
-
-    try {
-      console.log(`[AnalysisService] Executing live web search for ${ticker}...`);
-
-      // @ts-ignore - Using correct API structure that may not be fully reflected in current SDK types
-      const result = await model.generateContent(request);
-
-      const responseText = result.response.text();
-      console.log('Raw Market Data Response (Cerberus v1.3 - Live Search Enabled):', responseText);
-
-      if (!responseText || responseText.trim().length === 0) {
-        throw new Error('Empty response from Gemini API');
-      }
-
-      // Parse the market data from the response
-      const marketData = this.parseMarketData(responseText);
-
-      // Validate that we received live data
-      if (marketData.currentPrice === -1 || marketData.priceTimestamp === null) {
-        throw new Error(`[DATA_FETCH_FAILURE] Could not retrieve a live market price for ${ticker}. The data feed reported it as UNAVAILABLE.`);
-      }
-
-      console.log(`[AnalysisService] Successfully retrieved live market data for ${ticker}:`, {
-        price: marketData.currentPrice,
-        currency: marketData.currency,
-        timestamp: marketData.priceTimestamp
-      });
-
-      return marketData;
-
-    } catch (apiError) {
-      console.error(`[AnalysisService] Gemini API call failed for ${ticker}:`, apiError);
-      throw new Error(`Failed to fetch live market data: ${apiError instanceof Error ? apiError.message : 'Unknown API error'}`);
-    }
   }
 
-  private parseMarketData(jsonString: string): MarketData {
+  private parseMarketData(jsonString: string): Record<string, any> {
     try {
-      // Robust regex to extract JSON from markdown or other text
       const jsonMatch = jsonString.match(/```json\n([\s\S]*?)\n```|(\{[\s\S]*\})/);
-      if (!jsonMatch) {
-        throw new Error("No valid JSON object found in the AI response.");
-      }
-      const cleanedJsonString = jsonMatch[1] || jsonMatch[2];
-      return JSON.parse(cleanedJsonString);
+      if (!jsonMatch) throw new Error("No valid JSON object found in the AI response.");
+      return JSON.parse(jsonMatch[1] || jsonMatch[2]);
     } catch (error) {
       console.error("Failed to parse market data:", error);
       throw new Error("Could not decode the market data JSON from the AI response.");
     }
   }
 
-  private async performInvestmentAnalysis(ticker: string, marketData: MarketData): Promise<InvestmentAnalysisResponse> {
+  private async performInvestmentAnalysis(ticker: string, marketData: Record<string, any>): Promise<InvestmentAnalysisResponse> {
     const model = this.genAI.getGenerativeModel({
       model: "gemini-1.5-pro",
       generationConfig: {
-        temperature: 0.2, // Lower temperature for more factual responses
+        temperature: 0.3,
         responseMimeType: "application/json",
-        responseSchema: ANALYSIS_RESPONSE_SCHEMA as any
+        responseSchema: ANALYSIS_RESPONSE_SCHEMA_V5 as any
       }
     });
 
-    // NEW "SUPER-PROMPT" integrating all our new intelligence
-    const superPrompt = this.buildInvestmentPrompt(ticker, marketData);
+    const superPrompt = this.buildInvestmentPromptV5(ticker, marketData);
 
     const result = await model.generateContent(superPrompt);
     const responseText = result.response.text();
-    console.log('Raw AI Investment Analysis Response:', responseText);
 
-    const analysisResponse = JSON.parse(responseText) as InvestmentAnalysisResponse;
-
-    return {
-      ...analysisResponse,
-      analysisTimestamp: new Date().toISOString()
-    };
+    return JSON.parse(responseText) as InvestmentAnalysisResponse;
   }
 
-  private async performTradingAnalysis(ticker: string, marketData: MarketData, _timeframe: string): Promise<InvestmentAnalysisResponse> {
-    // This will be implemented in the next step, for now it can call the investment analysis as a fallback
-    console.warn(`Trading analysis not fully implemented. Using investment analysis as a fallback for ${ticker}.`);
-    return this.performInvestmentAnalysis(ticker, marketData);
-  }
-
-  private buildInvestmentPrompt(ticker: string, marketData: MarketData): string {
-    // Super-Prompt v2 - "The Skeptic"
+  private buildInvestmentPromptV5(ticker: string, marketData: Record<string, any>): string {
+    // Super-Prompt v5 - "The Signal-360 Investment Committee"
     return `
-You are "The Skeptic", a world-class, deeply critical investment analyst. Your sole purpose is to identify risks and puncture inflated narratives. Your reputation is built on avoiding bad investments, not just finding good ones. You will analyze ${ticker} (${marketData.companyName}) with extreme prejudice.
+You are a committee of four elite analysts working for "Signal-360". Your task is to produce a single, unified investment analysis report for ${ticker} (${marketData.companyName}).
 
-**AI CONSTITUTION - YOUR CORE DIRECTIVES:**
-1.  **Skepticism First:** Your default stance is disbelief. Every positive claim must be backed by multiple, quantifiable data points.
-2.  **Data Over Narrative:** Ignore market hype. Your analysis must be grounded in the provided market data and verifiable financial metrics obtained via your search tool.
-3.  **Valuation is King:** A great company at a terrible price is a terrible investment. Valuation risk is the most critical factor.
-4.  **No Perfect Scores:** A score of 100 is theoretical and unattainable. A score above 85 implies a generational opportunity with almost no discernible risks, a situation you have likely never seen. A score of 50 represents a fairly valued, average-risk company.
+**COMMITTEE CONSTITUTION - YOUR CORE PHILOSOPHY (MANDATORY):**
+Your guiding philosophy is that of a "Skeptic Mechanic". You are not a salesperson. Your primary function is to find reasons NOT to invest, in order to protect the user's capital. You prioritize risk over return. You question every narrative and demand quantitative proof. A great company at a high price is a bad investment.
 
-**MARKET DATA CONTEXT (AS OF ${marketData.priceTimestamp || 'A RECENT TIMESTAMP'}):**
+**INPUT DATA (AS OF ${marketData.priceTimestamp || 'A RECENT TIMESTAMP'}):**
 - Company: ${marketData.companyName}
 - Current Price: ${marketData.currentPrice} ${marketData.currency}
-- Market Cap: ${marketData.marketCap}
 
-**MANDATORY ANALYSIS FRAMEWORK (EXECUTE IN THIS ORDER):**
+**MANDATORY ANALYSIS FRAMEWORK (EXECUTE IN ORDER AND FILL THE SCHEMA):**
 
-**STEP 1: FUNDAMENTAL ANALYSIS (Weight: 60%)**
-- **Business Model & Moat (Qualitative):** Briefly describe the business. Identify the economic moat type and critically assess its durability against specific, named competitors. Is the moat widening or narrowing? Provide evidence.
-- **Financial Health (Quantitative):** Using your search tool, find and analyze these key ratios: P/E, P/S, P/FCF, Debt/Equity, and ROIC. For each, state the number and compare it to the 5-year average and the industry average.
-- **Valuation (DCF - Internal Thought Process):** Generate a conservative DCF. Explicitly state your assumptions for growth rate, discount rate, and terminal rate. Justify them. The resulting intrinsic value is a key input for your final verdict.
-- **Strengths & Weaknesses:** List 2-3 specific, data-backed strengths and weaknesses. Avoid generic statements.
-- **Calculate Fundamental Score (0-100):** Start at 50. Add/subtract points based on a strict rubric. For example: High ROIC (>15%) adds points, high Debt/Equity (>1.0) subtracts points, P/E over 30 subtracts significant points. Show your work in the 'fundamentalScore' field.
+**Part 1: The Value Investor's Report (Populate 'fundamental')**
+As the 'Value Investor's Compass' expert, conduct a deep fundamental analysis.
+- **Business & Moat:** Describe the business model and the durability of its economic moat.
+- **Management:** Provide a qualitative review of the management team's effectiveness.
+- **Financial Ratios:** Calculate and explain the P/E, ROE, Debt-to-Equity, and Net Profit Margin. The explanation for each ratio is mandatory.
+- **DCF Valuation:** Perform a DCF analysis. State the final intrinsic value per share and list your key assumptions.
 
-**STEP 2: SENTIMENT ANALYSIS (Weight: 20%)**
-- **Pulse Check:** Analyze recent news headlines and social media chatter. Is the sentiment euphoric (a warning sign) or fearful (a potential opportunity)?
-- **Analyst Ratings:** Summarize the consensus of professional analysts. Note the ratio of buy/hold/sell ratings.
-- **Calculate Sentiment Score (0-100):** A score of 50 is neutral. Widespread euphoria should result in a LOWER score due to contrarian risk.
+**Part 2: The Market Analyst's Report (Populate 'sentiment')**
+As the 'Eco Corporativo' expert, measure the market's pulse.
+- **Sentiment Score & Trend:** Provide an overall sentiment score (0-100) and a trend ('Improving', 'Stable', 'Worsening').
+- **Key Echoes:** Identify the top 3 news or social media "echoes". For EACH echo, you must provide the source, a summary, and an individual sentiment score (-100 to 100).
 
-**STEP 3: TECHNICAL ANALYSIS (Weight: 20%)**
-- **Long-Term Trend:** Is the stock in a long-term uptrend, downtrend, or range-bound based on the 50 and 200-day moving averages?
-- **Key Levels:** Identify the nearest major long-term support and resistance levels.
-- **Calculate Technical Score (0-100):** A score of 50 is neutral. A strong, confirmed uptrend scores higher. A stock below its 200-day MA should be penalized.
+**Part 3: The Technical Strategist's Report (Populate 'technical')**
+As the 'QuantumLeap Speculator' expert, analyze the technicals for a LONG-TERM INVESTOR.
+- **Overall Trend:** Determine the primary trend ('Uptrend', 'Downtrend', 'Sideways').
+- **Key Levels:** Identify the most significant long-term support and resistance levels.
+- **Technical Summary:** Write a narrative explaining if the current price action represents an opportune entry point, a risky one, or if patience is warranted.
 
-**STEP 4: FINAL SYNTHESIS & VERDICT**
-- **Calculate Final Score:** Use this precise, weighted formula: (Fundamental Score * 0.6) + (Sentiment Score * 0.2) + (Technical Score * 0.2). The result is the 'finalScore'.
-- **Identify Bullish and Bearish Arguments:** List the key data-backed reasons to be bullish on the stock in 'bullishFactors' and the key reasons to be bearish in 'bearishFactors', regardless of the final recommendation. Focus on concrete, specific factors from your analysis.
-- **Determine Recommendation:** Base the 'recommendation' strictly on the 'finalScore' and the relationship between 'currentPrice' and your calculated 'intrinsicValue'. If price is well above intrinsic value, a 'Sell' or 'Hold' is mandatory, regardless of other factors.
-- **Define Risk Level:** Assess the primary risks (valuation, competition, regulatory, etc.) and assign a 'riskLevel'.
+**Part 4: The Head of Strategy's Verdict (Populate 'verdict')**
+As the 'Strategic Synthesis' expert, your job is to synthesize the three reports above into a final, actionable verdict.
+- **Synthesize:** Analyze the convergence (where reports agree) and divergence (where they conflict).
+- **Synthesis Profile:** Write a compelling, concise title for the overall investment thesis.
+- **Strategist Verdict:** Write the final narrative. Explain the balance of risks and rewards based on the synthesis.
+- **Convergence/Divergence Factors:** List the specific points of agreement and disagreement between the reports.
+- **Synthesis Score:** Calculate a final conviction score (0-100). Start at 50. High convergence and a large margin of safety add points. Significant divergence or high valuation risk subtracts major points.
 
-Now, execute this entire process for ${ticker} and return ONLY the JSON object conforming to the required schema. Do not add any text before or after the JSON.
+Now, execute this entire, multi-expert process. Your final output must be ONLY the single JSON object that strictly conforms to the provided response schema. Do not add any text before or after the JSON.
 `;
   }
-
-  // Removed unused buildTradingPrompt method
 }
 
 // Factory function
-export const createAnalysisService = (apiKey: string): AnalysisService => {
+export const createAnalysisService = (apiKey: string): IAnalysisService => {
   return new AnalysisService(apiKey);
 };
 

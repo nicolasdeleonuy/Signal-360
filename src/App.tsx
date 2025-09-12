@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom'
 import LoginPage from './pages/login'
 import SignUpPage from './pages/sign-up'
 import DashboardPage from './pages/DashboardPage'
+import ResultsPage from './pages/ResultsPage'
 import ProtectedRoute from './components/protected-route'
 
 function App() {
@@ -14,6 +15,14 @@ function App() {
         element={
           <ProtectedRoute>
             <DashboardPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/analysis/:ticker" 
+        element={
+          <ProtectedRoute>
+            <ResultsPage />
           </ProtectedRoute>
         } 
       />

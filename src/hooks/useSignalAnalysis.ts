@@ -48,15 +48,9 @@ export function useSignalAnalysis(): UseSignalAnalysisReturn {
         result = await analysisService.getTradingAnalysis(ticker, timeframe);
       }
 
-      // 🔍 DIAGNOSTIC LOG: Verify what data the UI layer is receiving from analysisService
-      console.log('🔍 [UI-DIAGNOSTIC] Analysis result received by useSignalAnalysis hook:', {
-        ticker: result.ticker,
-        finalScore: result.verdict.finalScore,
-        recommendation: result.verdict.recommendation,
-        fullAnalysisObject: result
-      });
 
-      // Set the result data
+
+      // Set the result data directly - no mapping needed
       setData(result);
 
     } catch (err) {
@@ -74,7 +68,6 @@ export function useSignalAnalysis(): UseSignalAnalysisReturn {
    * Cancels the current analysis (clears state)
    */
   const cancelAnalysis = useCallback(() => {
-    console.log('Cancelling analysis');
     setIsLoading(false);
     setError(null);
     setData(null);
@@ -84,7 +77,6 @@ export function useSignalAnalysis(): UseSignalAnalysisReturn {
    * Resets all analysis state (for starting a new analysis)
    */
   const resetAnalysis = useCallback(() => {
-    console.log('Resetting analysis state');
     setIsLoading(false);
     setError(null);
     setData(null);
