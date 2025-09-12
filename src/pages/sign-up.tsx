@@ -24,6 +24,7 @@ export function SignUpPage() {
   })
   const [errors, setErrors] = useState<FormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [signUpSuccess, setSignUpSuccess] = useState(false)
   const { signUp, user, loading } = useAuth()
   const navigate = useNavigate()
 
@@ -72,8 +73,15 @@ export function SignUpPage() {
     setErrors({})
 
     try {
-      await signUp(formData.email, formData.password)
-      // Success - user will be redirected by useEffect when user state updates
+      const result = await signUp(formData.email, formData.password)
+      
+      if (result.requiresConfirmation) {
+        // Success with email confirmation required
+        setSignUpSuccess(true)
+      } else {
+        // Success with immediate sign-in (shouldn't happen with current Supabase config, but handle it)
+        // User will be redirected by useEffect when user state updates
+      }
     } catch (error: any) {
       console.error('Sign up error:', error)
       setErrors({
@@ -116,26 +124,50 @@ export function SignUpPage() {
         boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
       }}>
         <h1 style={{ textAlign: 'center', marginBottom: '30px', color: '#333' }}>
-          Create Account
+          {signUpSuccess ? 'Check Your Email' : 'Create Account'}
         </h1>
 
-        {errors.general && (
+        {signUpSuccess ? (
           <div 
-            className="error-message" 
+            className="success-message" 
             style={{ 
-              color: '#d32f2f', 
-              backgroundColor: '#ffebee', 
-              padding: '12px', 
-              borderRadius: '4px', 
+              color: '#2e7d32', 
+              backgroundColor: '#e8f5e8', 
+              padding: '20px', 
+              borderRadius: '8px', 
               marginBottom: '20px',
-              border: '1px solid #ffcdd2'
+              border: '1px solid #c8e6c9',
+              textAlign: 'center'
             }}
           >
-            {errors.general}
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
+            <h2 style={{ margin: '0 0 12px 0', color: '#2e7d32' }}>Account Created Successfully!</h2>
+            <p style={{ margin: '0 0 16px 0', lineHeight: '1.5' }}>
+              We've sent a confirmation email to <strong>{formData.email}</strong>
+            </p>
+            <p style={{ margin: '0', fontSize: '14px', color: '#555' }}>
+              Please check your email and click the confirmation link to activate your account.
+            </p>
           </div>
-        )}
+        ) : (
+          <>
+            {errors.general && (
+              <div 
+                className="error-message" 
+                style={{ 
+                  color: '#d32f2f', 
+                  backgroundColor: '#ffebee', 
+                  padding: '12px', 
+                  borderRadius: '4px', 
+                  marginBottom: '20px',
+                  border: '1px solid #ffcdd2'
+                }}
+              >
+                {errors.general}
+              </div>
+            )}
 
-        <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit}>
           <div className="form-group" style={{ marginBottom: '20px' }}>
             <label htmlFor="email" style={{ display: 'block', marginBottom: '5px', color: '#333' }}>
               Email Address
@@ -237,23 +269,45 @@ export function SignUpPage() {
           >
             {isSubmitting ? 'Creating Account...' : 'Create Account'}
           </button>
-        </form>
+            </form>
+          </>
+        )}
 
-        <div style={{ textAlign: 'center', marginTop: '20px' }}>
-          <p style={{ color: '#666' }}>
-            Already have an account?{' '}
+        {signUpSuccess ? (
+          <div style={{ textAlign: 'center', marginTop: '20px' }}>
             <Link 
               to="/login" 
               style={{ 
                 color: '#1976d2', 
                 textDecoration: 'none',
-                fontWeight: '500'
+                fontWeight: '500',
+                display: 'inline-block',
+                padding: '12px 24px',
+                border: '1px solid #1976d2',
+                borderRadius: '4px',
+                transition: 'all 0.3s'
               }}
             >
-              Sign in here
+              Go to Sign In
             </Link>
-          </p>
-        </div>
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', marginTop: '20px' }}>
+            <p style={{ color: '#666' }}>
+              Already have an account?{' '}
+              <Link 
+                to="/login" 
+                style={{ 
+                  color: '#1976d2', 
+                  textDecoration: 'none',
+                  fontWeight: '500'
+                }}
+              >
+                Sign in here
+              </Link>
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )

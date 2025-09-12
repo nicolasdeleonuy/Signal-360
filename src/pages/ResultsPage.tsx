@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/auth-context';
+import { useParams } from 'react-router-dom';
 import { useSignalAnalysis } from '../hooks/useSignalAnalysis';
 import InteractiveDCF from '../components/analysis/InteractiveDCF';
 
@@ -14,99 +13,9 @@ const getScoreColor = (score: number) => {
   return 'from-red-400 to-red-600';
 };
 
-// Helper function to get recommendation color
-const getRecommendationColor = (recommendation: string) => {
-  const rec = recommendation.toLowerCase();
-  if (rec.includes('buy') || rec.includes('strong buy')) return 'from-green-400 to-emerald-500';
-  if (rec.includes('hold')) return 'from-yellow-400 to-orange-500';
-  if (rec.includes('sell')) return 'from-red-400 to-red-600';
-  return 'from-gray-400 to-gray-500';
-};
 
-// PageHeader Component
-interface PageHeaderProps {
-  ticker?: string;
-}
 
-const PageHeader: React.FC<PageHeaderProps> = ({ ticker }) => {
-  const navigate = useNavigate();
-  const { signOut } = useAuth();
 
-  const handleBackToDashboard = () => {
-    navigate('/');
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-    } catch (error) {
-      console.error('Sign out error:', error);
-    }
-  };
-
-  return (
-    <header className="relative z-10 backdrop-blur-xl bg-black/40 border-b border-white/10 py-4 mb-8">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between">
-          {/* Logo and Title */}
-          <div className="flex items-center space-x-4">
-            <div className="relative">
-              <img 
-                src="/logos/signal-360-logo.png" 
-                alt="Signal-360 Logo" 
-                className="w-10 h-10 lg:w-12 lg:h-12"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  (e.currentTarget.nextElementSibling as HTMLElement)!.style.display = 'flex';
-                }}
-              />
-              <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-cyan-400 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl hidden">
-                <span className="text-white font-bold text-lg lg:text-xl">S</span>
-              </div>
-            </div>
-            <div>
-              <h1 className="text-xl lg:text-2xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-cyan-300 bg-clip-text text-transparent">
-                Signal-360
-              </h1>
-              {ticker && (
-                <p className="text-sm text-gray-400">
-                  Analysis for {ticker.toUpperCase()}
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Navigation Buttons */}
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={handleBackToDashboard}
-              className="flex items-center space-x-2 backdrop-blur-sm bg-white/10 border border-white/20 hover:border-cyan-400/30 hover:bg-cyan-500/10 rounded-xl px-4 py-2 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:ring-offset-gray-900 group"
-            >
-              <svg className="w-4 h-4 text-gray-300 group-hover:text-cyan-300 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              <span className="text-gray-300 group-hover:text-cyan-300 font-medium text-sm transition-colors duration-300">
-                Dashboard
-              </span>
-            </button>
-            
-            <button
-              onClick={handleSignOut}
-              className="flex items-center space-x-2 backdrop-blur-sm bg-white/10 border border-white/20 hover:border-red-400/30 hover:bg-red-500/10 rounded-xl px-4 py-2 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:ring-offset-gray-900 group"
-            >
-              <svg className="w-4 h-4 text-gray-300 group-hover:text-red-300 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-              <span className="text-gray-300 group-hover:text-red-300 font-medium text-sm transition-colors duration-300">
-                Sign Out
-              </span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </header>
-  );
-};
 
 const ResultsPage: React.FC = () => {
   const { ticker } = useParams<{ ticker: string }>();
@@ -123,40 +32,29 @@ const ResultsPage: React.FC = () => {
   const tabs: TabType[] = ['Verdict', 'Value Analysis', 'Market Pulse', 'Timing'];
 
   const renderLoadingState = () => (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-black text-white relative overflow-hidden">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-cyan-400/20 to-purple-600/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-purple-400/20 to-cyan-600/20 rounded-full blur-3xl animate-pulse delay-1000" />
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-cyan-400/10 to-purple-600/10 rounded-full blur-3xl animate-pulse delay-500" />
-      </div>
-
-      <PageHeader ticker={ticker} />
-
-      <div className="relative z-10 flex items-center justify-center min-h-[calc(100vh-120px)]">
-        <div className="text-center max-w-2xl mx-auto px-4">
-          <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl p-12 shadow-2xl">
-            {/* Loading Animation */}
-            <div className="mb-8">
-              <div className="w-20 h-20 mx-auto mb-6">
-                <div className="w-full h-full border-4 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin"></div>
-              </div>
+    <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
+      <div className="text-center max-w-2xl mx-auto px-4">
+        <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl p-12 shadow-2xl">
+          {/* Loading Animation */}
+          <div className="mb-8">
+            <div className="w-20 h-20 mx-auto mb-6">
+              <div className="w-full h-full border-4 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin"></div>
             </div>
-            
-            <h2 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent mb-6">
-              Analyzing {ticker?.toUpperCase()}...
-            </h2>
-            
-            <p className="text-gray-300 text-lg lg:text-xl leading-relaxed mb-8">
-              Our AI is performing a comprehensive 360° analysis of your selected asset. 
-              This includes fundamental metrics, technical indicators, ESG factors, and market sentiment.
-            </p>
-            
-            <div className="flex items-center justify-center space-x-2 text-cyan-400">
-              <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce"></div>
-              <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce delay-100"></div>
-              <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce delay-200"></div>
-            </div>
+          </div>
+          
+          <h2 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent mb-6">
+            Analyzing {ticker?.toUpperCase()}...
+          </h2>
+          
+          <p className="text-gray-300 text-lg lg:text-xl leading-relaxed mb-8">
+            Our AI is performing a comprehensive 360° analysis of your selected asset. 
+            This includes fundamental metrics, technical indicators, ESG factors, and market sentiment.
+          </p>
+          
+          <div className="flex items-center justify-center space-x-2 text-cyan-400">
+            <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce"></div>
+            <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce delay-100"></div>
+            <div className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce delay-200"></div>
           </div>
         </div>
       </div>
@@ -164,48 +62,38 @@ const ResultsPage: React.FC = () => {
   );
 
   const renderErrorState = () => (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-black text-white relative overflow-hidden">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-red-400/20 to-orange-600/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-orange-400/20 to-red-600/20 rounded-full blur-3xl animate-pulse delay-1000" />
-      </div>
-
-      <PageHeader ticker={ticker} />
-
-      <div className="relative z-10 flex items-center justify-center min-h-[calc(100vh-120px)]">
-        <div className="text-center max-w-2xl mx-auto px-4">
-          <div className="backdrop-blur-xl bg-red-500/10 border border-red-400/30 rounded-3xl p-12 shadow-2xl">
-            <div className="w-16 h-16 mx-auto mb-6 text-red-400">
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="w-full h-full">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
-            </div>
-            
-            <h2 className="text-3xl lg:text-4xl font-bold text-red-400 mb-6">
-              Analysis Error
-            </h2>
-            
-            <p className="text-gray-300 text-lg leading-relaxed mb-6">
-              We encountered an issue while analyzing {ticker?.toUpperCase()}. Please try again or contact support if the problem persists.
-            </p>
-            
-            <div className="backdrop-blur-sm bg-red-500/20 border border-red-400/30 rounded-2xl p-4 mb-6">
-              <p className="text-red-200 text-sm font-mono">
-                {error}
-              </p>
-            </div>
-            
-            <button
-              onClick={() => ticker && runAnalysis(ticker, 'investment', '1M')}
-              className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 
-                         text-white font-bold py-3 px-8 rounded-2xl transition-all duration-300 
-                         focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:ring-offset-gray-900
-                         shadow-xl hover:shadow-2xl hover:shadow-red-500/25 transform hover:-translate-y-1"
-            >
-              Try Again
-            </button>
+    <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
+      <div className="text-center max-w-2xl mx-auto px-4">
+        <div className="backdrop-blur-xl bg-red-500/10 border border-red-400/30 rounded-3xl p-12 shadow-2xl">
+          <div className="w-16 h-16 mx-auto mb-6 text-red-400">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" className="w-full h-full">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
           </div>
+          
+          <h2 className="text-3xl lg:text-4xl font-bold text-red-400 mb-6">
+            Analysis Error
+          </h2>
+          
+          <p className="text-gray-300 text-lg leading-relaxed mb-6">
+            We encountered an issue while analyzing {ticker?.toUpperCase()}. Please try again or contact support if the problem persists.
+          </p>
+          
+          <div className="backdrop-blur-sm bg-red-500/20 border border-red-400/30 rounded-2xl p-4 mb-6">
+            <p className="text-red-200 text-sm font-mono">
+              {error}
+            </p>
+          </div>
+          
+          <button
+            onClick={() => ticker && runAnalysis(ticker, 'investment', '1M')}
+            className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 
+                       text-white font-bold py-3 px-8 rounded-2xl transition-all duration-300 
+                       focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:ring-offset-gray-900
+                       shadow-xl hover:shadow-2xl hover:shadow-red-500/25 transform hover:-translate-y-1"
+          >
+            Try Again
+          </button>
         </div>
       </div>
     </div>
@@ -544,18 +432,8 @@ const ResultsPage: React.FC = () => {
 
   // Render the full tabbed interface when analysis is complete
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-black text-white relative overflow-hidden">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-cyan-400/20 to-purple-600/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-purple-400/20 to-cyan-600/20 rounded-full blur-3xl animate-pulse delay-1000" />
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-cyan-400/10 to-purple-600/10 rounded-full blur-3xl animate-pulse delay-500" />
-      </div>
-
-      <PageHeader ticker={ticker} />
-
-      <div className="relative z-10 container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto">
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto">
           {/* Page Title */}
           <div className="text-center mb-8">
             <h1 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-cyan-300 bg-clip-text text-transparent mb-4">
@@ -620,10 +498,9 @@ const ResultsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Tab Content */}
-          <div>
-            {renderTabContent()}
-          </div>
+        {/* Tab Content */}
+        <div>
+          {renderTabContent()}
         </div>
       </div>
     </div>

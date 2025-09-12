@@ -1,11 +1,11 @@
--- Create trigger to automatically create profile for new users
--- This ensures every authenticated user has a corresponding profile record
+-- Fix user profile creation trigger to work with updated schema
+-- This migration fixes the handle_new_user function to properly work with the credits column
 
--- Function to create a profile when a new user is created in auth.users
+-- Updated function to create a profile when a new user is created in auth.users
+-- Removes the non-existent email column and relies on DEFAULT for credits
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
-  -- NOTE: Updated in migration 004 to work with current schema
   INSERT INTO public.profiles (id, created_at, updated_at)
   VALUES (
     NEW.id,
@@ -16,12 +16,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Trigger that fires when a new user is inserted into auth.users
+-- Recreate the trigger to ensure it uses the updated function
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- Grant necessary permissions
+-- Ensure proper permissions are granted
 GRANT USAGE ON SCHEMA public TO authenticated;
 GRANT ALL ON public.profiles TO authenticated;

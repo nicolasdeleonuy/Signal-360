@@ -26,7 +26,6 @@ const calculateDcfValue = (assumptions: DCFAssumptions, initialData: Fundamental
     // Work backwards to estimate initial revenue and EBIT
     const estimatedNetIncome = (currentPrice * estimatedShares) / peRatio;
     const estimatedRevenue = netProfitMargin > 0 ? estimatedNetIncome / netProfitMargin : estimatedNetIncome / 0.1;
-    const initialEBIT = estimatedRevenue * ebitMargin;
 
     // Step 1: Project FCFF for 5 Years
     const projectedFCFF: number[] = [];

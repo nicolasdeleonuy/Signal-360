@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
+import { mockCreateAnalysisService } from './mocks/analysisServiceMock';
 
 // Global mock for react-router-dom to make MemoryRouter and other components available
 vi.mock('react-router-dom', async (importOriginal) => {
@@ -27,5 +28,15 @@ vi.mock('../lib/supabaseClient', () => ({
     from: vi.fn().mockReturnThis(),
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
+    insert: vi.fn().mockReturnThis(),
+    update: vi.fn().mockReturnThis(),
+    single: vi.fn().mockResolvedValue({ data: null, error: null }),
   },
+}));
+
+// Global mock for analysis service to prevent live API calls during tests
+vi.mock('../services/analysisService', () => ({
+  createAnalysisService: mockCreateAnalysisService,
+  // Re-export types for test usage
+  ...vi.importActual('../services/analysisService')
 }));

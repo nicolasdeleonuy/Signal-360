@@ -71,16 +71,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [])
 
-  const signUp = async (email: string, password: string): Promise<void> => {
+  const signUp = async (email: string, password: string): Promise<{ requiresConfirmation: boolean }> => {
     setLoading(true)
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
       })
+      
       if (error) {
         throw error
       }
+      
+      // Return whether email confirmation is required
+      // If user exists but session is null, confirmation is required
+      const requiresConfirmation = data.user && !data.session
+      
+      return { requiresConfirmation: !!requiresConfirmation }
     } catch (error) {
       throw error
     } finally {

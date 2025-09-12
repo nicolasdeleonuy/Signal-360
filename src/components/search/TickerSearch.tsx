@@ -524,24 +524,40 @@ export const TickerSearch: React.FC<TickerSearchProps> = (props) => {
     }, 150);
   }, []);
 
+  // Sanitize ticker symbol by removing exchange suffixes
+  const sanitizeTicker = useCallback((ticker: string): string => {
+    if (!ticker) return ticker;
+    
+    // Remove common exchange suffixes like .NE, .L, .BR, .TO, .V, etc.
+    // Keep only the root ticker symbol
+    const cleanTicker = ticker.split('.')[0];
+    
+    // Also handle other common separators like hyphens for preferred shares
+    // But preserve the main ticker part
+    return cleanTicker.trim().toUpperCase();
+  }, []);
+
   // Handle suggestion click
   const handleSuggestionClick = useCallback((suggestion: TickerSuggestion) => {
+    // Sanitize the ticker to remove exchange suffixes
+    const cleanTicker = sanitizeTicker(suggestion.ticker);
+    
     setState(prevState => ({
       ...prevState,
-      query: suggestion.ticker,
+      query: cleanTicker,
       isOpen: false,
       selectedIndex: -1,
       suggestions: [],
     }));
 
-    // Call the parent callback
-    onTickerSelect(suggestion.ticker, suggestion.name);
+    // Call the parent callback with sanitized ticker
+    onTickerSelect(cleanTicker, suggestion.name);
 
     // Clear any pending timeouts
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
     }
-  }, [onTickerSelect]);
+  }, [onTickerSelect, sanitizeTicker]);
 
   // Handle suggestion mouse enter for highlighting
   const handleSuggestionMouseEnter = useCallback((index: number) => {

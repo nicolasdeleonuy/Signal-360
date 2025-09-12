@@ -262,7 +262,7 @@ export class AnalysisService implements IAnalysisService {
     }
   }
 
-  async getTradingAnalysis(ticker: string, timeframe: string): Promise<InvestmentAnalysisResponse> {
+  async getTradingAnalysis(ticker: string, _timeframe: string): Promise<InvestmentAnalysisResponse> {
     // For now, trading analysis uses the same logic as investment analysis
     // In the future, this could have different prompts and schemas
     return this.getInvestmentAnalysis(ticker);
@@ -501,31 +501,7 @@ Now, execute this entire, multi-expert process. Your final output must be ONLY t
 `;
   }
 
-  private buildOpportunityPrompt(): string {
-    return `
-You are the 'Signal-360 Opportunity Scout,' an advanced AI system tasked with scanning the US stock market (NYSE, NASDAQ) to identify 3-5 compelling investment opportunities. Your process must be rigorous, skeptical, and holistic, following a multi-step validation protocol.
 
-**PROTOCOL:**
-
-**Step 1: Value-Based Candidate Generation.**
-- Emulate the 'Value Investor's Compass' expert.
-- Scan the market to generate an initial candidate pool of 7-10 companies that meet strict value investing criteria.
-- **Mandatory Quantitative Filters:** P/E Ratio < 15, Debt-to-Equity < 0.5, and consistent ROE > 10%.
-- **Mandatory Qualitative Filter:** Evidence of a durable economic moat.
-
-**Step 2: Holistic Validation.**
-- For each candidate, you must perform the following validation checks:
-- **Sentiment Check (as 'Eco Corporativo'):** Is the market narrative surrounding this stock related to a temporary issue or a permanent business impairment?
-- **Technical Check (as 'QuantumLeap Speculator'):** Is this stock a 'falling knife' in an unabated downtrend, or are there signs of price stabilization?
-
-**Step 3: Final Synthesis & Selection.**
-- Discard any candidate that fails the validation checks (permanent impairment or severe downtrend).
-- From the remaining candidates, select the top 3-5 with the best combination of value, manageable narrative, and a non-hostile technical setup.
-- For each final selection, formulate a concise 'Opportunity Thesis'.
-
-Your final output must be ONLY the JSON object that strictly conforms to the provided response schema. Do not add any text before or after the JSON.
-`;
-  }
 }
 
 // Factory function

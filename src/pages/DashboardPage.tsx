@@ -1,6 +1,5 @@
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/auth-context';
 import { TickerSearch } from '../components/search/TickerSearch';
 import { OpportunitiesView } from '../components/opportunities/OpportunitiesView';
 import { useOpportunitySearch } from '../hooks/useOpportunitySearch';
@@ -39,13 +38,7 @@ function SparkleIcon() {
   );
 }
 
-function LogoutIcon() {
-  return (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-    </svg>
-  );
-}
+
 
 interface DashboardCardProps {
   title: string;
@@ -129,7 +122,6 @@ function PremiumFeatureCard({ onPremiumClick, userCredits }: PremiumFeatureCardP
 }
 
 export function DashboardPage() {
-  const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [showOpportunities, setShowOpportunities] = useState(false);
   const { runSearch, data, error, isLoading } = useOpportunitySearch();
@@ -142,11 +134,19 @@ export function DashboardPage() {
       return;
     }
 
-    // Decrement credits first
-    const success = await decrementCredits();
-    if (success) {
-      navigate(`/analysis/${ticker}`);
-    } else {
+    try {
+      // Decrement credits first and wait for completion
+      const success = await decrementCredits();
+      if (success) {
+        // Add a small delay to ensure state has propagated
+        setTimeout(() => {
+          navigate(`/analysis/${ticker}`);
+        }, 100);
+      } else {
+        alert('Failed to process request. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error in handleTickerSelection:', error);
       alert('Failed to process request. Please try again.');
     }
   }, [navigate, profile, decrementCredits]);
@@ -158,15 +158,20 @@ export function DashboardPage() {
       return;
     }
 
-    // Decrement credits and run search
-    const success = await decrementCredits();
-    if (success) {
-      setShowOpportunities(true);
-      // Run the search after showing the modal
-      setTimeout(() => {
-        runSearch();
-      }, 100);
-    } else {
+    try {
+      // Decrement credits and run search
+      const success = await decrementCredits();
+      if (success) {
+        setShowOpportunities(true);
+        // Run the search after showing the modal with a slight delay
+        setTimeout(() => {
+          runSearch();
+        }, 100);
+      } else {
+        alert('Failed to process request. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error in handlePremiumFeatureClick:', error);
       alert('Failed to process request. Please try again.');
     }
   }, [profile, decrementCredits, runSearch]);
@@ -180,83 +185,10 @@ export function DashboardPage() {
     setShowOpportunities(false);
   }, []);
 
-  const handleLogout = useCallback(async () => {
-    try {
-      await signOut();
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  }, [signOut]);
+
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-black flex flex-col relative overflow-hidden">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-cyan-400/20 to-purple-600/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-purple-400/20 to-cyan-600/20 rounded-full blur-3xl animate-pulse delay-1000" />
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-cyan-400/10 to-purple-600/10 rounded-full blur-3xl animate-pulse delay-500" />
-      </div>
-
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 flex flex-col">
-        {/* Header with Logo */}
-        <header className="mb-12 lg:mb-16">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center space-x-4 mb-4 sm:mb-0">
-              {/* Signal-360 Logo */}
-              <div className="relative">
-                <img 
-                  src="/logos/signal-360-logo.png" 
-                  alt="Signal-360 Logo" 
-                  className="w-16 h-16 lg:w-20 lg:h-20"
-                  onError={(e) => {
-                    // Fallback to gradient placeholder if image fails to load
-                    e.currentTarget.style.display = 'none';
-                    (e.currentTarget.nextElementSibling as HTMLElement)!.style.display = 'flex';
-                  }}
-                />
-                <div className="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-cyan-400 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl hidden">
-                  <span className="text-white font-bold text-xl lg:text-2xl">S</span>
-                </div>
-              </div>
-              <div>
-                <p className="text-lg lg:text-xl text-gray-300 font-medium">
-                  Your AI-Powered Investment Co-Pilot
-                </p>
-              </div>
-            </div>
-            <div className="text-left sm:text-right">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
-                <div className="backdrop-blur-sm bg-white/10 border border-white/20 rounded-xl px-4 py-2">
-                  <span className="text-gray-200 font-medium text-sm lg:text-base">
-                    Welcome, {user?.email}
-                  </span>
-                </div>
-                {profile && (
-                  <div className="backdrop-blur-sm bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-cyan-400/30 rounded-xl px-4 py-2">
-                    <span className="text-cyan-200 font-medium text-sm lg:text-base">
-                      Credits: {profile.credits}
-                    </span>
-                  </div>
-                )}
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center space-x-2 backdrop-blur-sm bg-white/10 border border-white/20 hover:border-red-400/30 hover:bg-red-500/10 rounded-xl px-3 py-2 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:ring-offset-gray-900 group"
-                  aria-label="Sign out"
-                >
-                  <div className="text-gray-300 group-hover:text-red-300 transition-colors duration-300">
-                    <LogoutIcon />
-                  </div>
-                  <span className="text-gray-300 group-hover:text-red-300 font-medium text-sm transition-colors duration-300">
-                    Sign Out
-                  </span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Main Content - Two Path Cards */}
-        <main className="flex-1 flex flex-col">
+    <>
           <div className="grid grid-cols-1 lg:grid-cols-2 lg:grid-rows-1 gap-6 lg:gap-8 mb-16 lg:mb-20 flex-1 min-h-[500px] lg:min-h-[600px]">
             {/* Path 1: Investigate Like a Pro */}
             <DashboardCard
@@ -364,44 +296,6 @@ export function DashboardPage() {
               </div>
             </div>
           </div>
-        </main>
-      </div>
-
-      {/* Footer with Vortex Branding */}
-      <footer className="relative z-10 backdrop-blur-xl bg-black/40 border-t border-white/10 py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-center space-x-4">
-            <span className="text-gray-400 text-sm lg:text-base">Created by</span>
-            <a 
-              href="https://es.vortexlabsia.com" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="flex items-center space-x-3 hover:opacity-80 transition-all duration-300 hover:scale-105 group"
-            >
-              {/* Vortex Logo */}
-              <div className="relative">
-                <img 
-                  src="/logos/vortex-logo.png" 
-                  alt="Vortex Logo" 
-                  className="w-10 h-10"
-                  onError={(e) => {
-                    // Fallback to gradient placeholder if image fails to load
-                    e.currentTarget.style.display = 'none';
-                    (e.currentTarget.nextElementSibling as HTMLElement)!.style.display = 'flex';
-                  }}
-                />
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg hidden">
-                  <span className="text-white font-bold text-sm">V</span>
-                </div>
-              </div>
-              <span className="text-gray-200 font-semibold text-sm lg:text-base group-hover:text-white transition-colors duration-300">
-                Vortex Labs
-              </span>
-            </a>
-          </div>
-        </div>
-      </footer>
-
       {/* Opportunities Modal */}
       {showOpportunities && (
         <OpportunitiesView
@@ -412,7 +306,7 @@ export function DashboardPage() {
           isLoading={isLoading}
         />
       )}
-    </div>
+    </>
   );
 }
 

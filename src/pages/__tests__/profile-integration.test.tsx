@@ -155,7 +155,7 @@ describe('ProfilePage Integration', () => {
   })
 
   it('should handle auth state changes', async () => {
-    let authStateCallback: (event: string, session: any) => void
+    let authStateCallback: ((event: string, session: any) => void) | undefined
 
     // Set up the mock before rendering
     const mockOnAuthStateChange = vi.fn().mockImplementation((callback) => {
