@@ -1,7 +1,10 @@
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/auth-context';
 import { TickerSearch } from '../components/search/TickerSearch';
+import { OpportunitiesView } from '../components/opportunities/OpportunitiesView';
+import { useOpportunitySearch } from '../hooks/useOpportunitySearch';
+import { useUserProfile } from '../hooks/useUserProfile';
 
 // Professional SVG Icons with electric accent colors
 function AnalysisIcon() {
@@ -83,38 +86,42 @@ function DashboardCard({ title, description, children, className = '', isPrimary
 
 interface PremiumFeatureCardProps {
   onPremiumClick: () => void;
+  userCredits?: number;
 }
 
-function PremiumFeatureCard({ onPremiumClick }: PremiumFeatureCardProps) {
+function PremiumFeatureCard({ onPremiumClick, userCredits }: PremiumFeatureCardProps) {
   return (
     <div className="space-y-6 flex flex-col h-full">
       <div className="backdrop-blur-sm bg-gradient-to-br from-purple-500/20 to-cyan-500/20 border border-purple-400/30 rounded-2xl p-6 flex-1">
-        <div className="flex items-center space-x-3 mb-4">
+        <div className="flex items-center mb-4">
           <div className="flex items-center space-x-2">
             <SparkleIcon />
             <span className="text-cyan-300 font-semibold text-lg">Premium Feature</span>
           </div>
-          <span className="bg-gradient-to-r from-purple-400/30 to-cyan-400/30 backdrop-blur-sm text-cyan-200 text-xs px-4 py-2 rounded-full font-medium border border-cyan-400/20">
-            Coming Soon
-          </span>
         </div>
         <p className="text-gray-200 leading-relaxed text-lg">
           Our AI will scan thousands of stocks to find opportunities that match value investing principles.
         </p>
       </div>
       
+      <p className="text-xs text-gray-400 text-center mb-2">*Each search consumes 1 credit.</p>
       <button
         onClick={onPremiumClick}
-        className="w-full bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 
-                   text-white font-bold py-5 px-8 rounded-2xl transition-all duration-300 
+        disabled={userCredits === 0}
+        className={`w-full font-bold py-5 px-8 rounded-2xl transition-all duration-300 
                    focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:ring-offset-gray-900
-                   shadow-xl hover:shadow-2xl hover:shadow-cyan-500/25 transform hover:-translate-y-1 hover:scale-105
-                   border border-cyan-400/20 backdrop-blur-sm text-lg"
+                   shadow-xl hover:shadow-2xl border backdrop-blur-sm text-lg
+                   ${userCredits === 0 
+                     ? 'bg-gradient-to-r from-gray-600 to-gray-500 text-gray-300 cursor-not-allowed border-gray-500/20' 
+                     : 'bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white hover:shadow-cyan-500/25 transform hover:-translate-y-1 hover:scale-105 border-cyan-400/20'
+                   }`}
         aria-label="Discover investment opportunities - Premium feature"
       >
         <div className="flex items-center justify-center space-x-2">
           <SparkleIcon />
-          <span>Discover Opportunities</span>
+          <span>
+            {userCredits === 0 ? 'No Credits Remaining' : 'Discover Opportunities'}
+          </span>
         </div>
       </button>
     </div>
@@ -124,13 +131,53 @@ function PremiumFeatureCard({ onPremiumClick }: PremiumFeatureCardProps) {
 export function DashboardPage() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const [showOpportunities, setShowOpportunities] = useState(false);
+  const { runSearch, data, error, isLoading } = useOpportunitySearch();
+  const { profile, decrementCredits } = useUserProfile();
 
-  const handleTickerSelection = useCallback((ticker: string, _companyName: string) => {
+  const handleTickerSelection = useCallback(async (ticker: string, _companyName: string) => {
+    // Check if user has credits
+    if (!profile || profile.credits <= 0) {
+      alert('You need credits to perform a deep analysis.');
+      return;
+    }
+
+    // Decrement credits first
+    const success = await decrementCredits();
+    if (success) {
+      navigate(`/analysis/${ticker}`);
+    } else {
+      alert('Failed to process request. Please try again.');
+    }
+  }, [navigate, profile, decrementCredits]);
+
+  const handlePremiumFeatureClick = useCallback(async () => {
+    // Check if user has credits
+    if (!profile || profile.credits <= 0) {
+      alert('Premium feature. Please upgrade to get more credits.');
+      return;
+    }
+
+    // Decrement credits and run search
+    const success = await decrementCredits();
+    if (success) {
+      setShowOpportunities(true);
+      // Run the search after showing the modal
+      setTimeout(() => {
+        runSearch();
+      }, 100);
+    } else {
+      alert('Failed to process request. Please try again.');
+    }
+  }, [profile, decrementCredits, runSearch]);
+
+  const handleOpportunityClick = useCallback((ticker: string) => {
+    setShowOpportunities(false);
     navigate(`/analysis/${ticker}`);
   }, [navigate]);
 
-  const handlePremiumFeatureClick = useCallback(() => {
-    console.log('Premium feature clicked');
+  const handleCloseOpportunities = useCallback(() => {
+    setShowOpportunities(false);
   }, []);
 
   const handleLogout = useCallback(async () => {
@@ -160,21 +207,18 @@ export function DashboardPage() {
                 <img 
                   src="/logos/signal-360-logo.png" 
                   alt="Signal-360 Logo" 
-                  className="w-14 h-14 lg:w-16 lg:h-16"
+                  className="w-16 h-16 lg:w-20 lg:h-20"
                   onError={(e) => {
                     // Fallback to gradient placeholder if image fails to load
                     e.currentTarget.style.display = 'none';
                     (e.currentTarget.nextElementSibling as HTMLElement)!.style.display = 'flex';
                   }}
                 />
-                <div className="w-14 h-14 lg:w-16 lg:h-16 bg-gradient-to-br from-cyan-400 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl hidden">
+                <div className="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-cyan-400 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl hidden">
                   <span className="text-white font-bold text-xl lg:text-2xl">S</span>
                 </div>
               </div>
               <div>
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-cyan-300 bg-clip-text text-transparent">
-                  Signal-360
-                </h1>
                 <p className="text-lg lg:text-xl text-gray-300 font-medium">
                   Your AI-Powered Investment Co-Pilot
                 </p>
@@ -187,6 +231,13 @@ export function DashboardPage() {
                     Welcome, {user?.email}
                   </span>
                 </div>
+                {profile && (
+                  <div className="backdrop-blur-sm bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-cyan-400/30 rounded-xl px-4 py-2">
+                    <span className="text-cyan-200 font-medium text-sm lg:text-base">
+                      Credits: {profile.credits}
+                    </span>
+                  </div>
+                )}
                 <button
                   onClick={handleLogout}
                   className="flex items-center space-x-2 backdrop-blur-sm bg-white/10 border border-white/20 hover:border-red-400/30 hover:bg-red-500/10 rounded-xl px-3 py-2 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 focus:ring-offset-gray-900 group"
@@ -206,15 +257,15 @@ export function DashboardPage() {
 
         {/* Main Content - Two Path Cards */}
         <main className="flex-1 flex flex-col">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 mb-16 lg:mb-20 flex-1 min-h-[500px] lg:min-h-[600px]">
+          <div className="grid grid-cols-1 lg:grid-cols-2 lg:grid-rows-1 gap-6 lg:gap-8 mb-16 lg:mb-20 flex-1 min-h-[500px] lg:min-h-[600px]">
             {/* Path 1: Investigate Like a Pro */}
             <DashboardCard
               title="Investigate Like a Pro"
               description="Perform a 360-degree analysis on any stock or asset you have in mind"
               isPrimary={true}
             >
-              <div className="space-y-6">
-                <div className="backdrop-blur-sm bg-gradient-to-br from-cyan-500/20 to-purple-500/20 border border-cyan-400/30 rounded-2xl p-6">
+              <div className="space-y-6 h-full flex flex-col">
+                <div className="backdrop-blur-sm bg-gradient-to-br from-cyan-500/20 to-purple-500/20 border border-cyan-400/30 rounded-2xl p-6 flex-1">
                   <h3 className="font-bold text-cyan-200 mb-4 text-lg">
                     What you'll get:
                   </h3>
@@ -238,6 +289,7 @@ export function DashboardPage() {
                   </ul>
                 </div>
                 <div className="mt-auto">
+                  <p className="text-xs text-gray-400 text-center mb-2">*Each analysis consumes 1 credit.</p>
                   <TickerSearch
                     onTickerSelect={handleTickerSelection}
                     placeholder="Enter ticker (e.g., AAPL, MSFT, GOOGL)"
@@ -253,7 +305,10 @@ export function DashboardPage() {
               title="Find Your Next Great Investment"
               description="Use our AI to scan the market and discover promising companies based on value investing principles"
             >
-              <PremiumFeatureCard onPremiumClick={handlePremiumFeatureClick} />
+              <PremiumFeatureCard 
+                onPremiumClick={handlePremiumFeatureClick} 
+                userCredits={profile?.credits}
+              />
             </DashboardCard>
           </div>
 
@@ -346,6 +401,17 @@ export function DashboardPage() {
           </div>
         </div>
       </footer>
+
+      {/* Opportunities Modal */}
+      {showOpportunities && (
+        <OpportunitiesView
+          onOpportunityClick={handleOpportunityClick}
+          onClose={handleCloseOpportunities}
+          data={data}
+          error={error}
+          isLoading={isLoading}
+        />
+      )}
     </div>
   );
 }

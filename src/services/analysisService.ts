@@ -66,11 +66,43 @@ export interface InvestmentAnalysisResponse {
   marketData: MarketData;
 }
 
+// Opportunity interfaces
+export interface Opportunity {
+  ticker: string;
+  companyName: string;
+  opportunityThesis: string;
+}
+
+export interface OpportunitySearchResponse {
+  opportunities: Opportunity[];
+}
+
 // Main interface for the service
 export interface IAnalysisService {
   getInvestmentAnalysis(ticker: string): Promise<InvestmentAnalysisResponse>;
   getTradingAnalysis(ticker: string, timeframe: string): Promise<InvestmentAnalysisResponse>;
+  findOpportunities(): Promise<OpportunitySearchResponse>;
 }
+
+// Schema for opportunity search response
+const OPPORTUNITY_SEARCH_SCHEMA = {
+  type: "object",
+  properties: {
+    opportunities: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          ticker: { type: "string" },
+          companyName: { type: "string" },
+          opportunityThesis: { type: "string", description: "A 2-3 sentence summary explaining the holistic reason for selection." }
+        },
+        required: ["ticker", "companyName", "opportunityThesis"]
+      }
+    }
+  },
+  required: ["opportunities"]
+};
 
 // The definitive schema that dictates the AI's output structure.
 const ANALYSIS_RESPONSE_SCHEMA_V5 = {
@@ -236,29 +268,139 @@ export class AnalysisService implements IAnalysisService {
     return this.getInvestmentAnalysis(ticker);
   }
 
-  private async getMarketData(ticker: string): Promise<Record<string, any>> {
-    // This function remains the same as before
-    const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const prompt = `You are a specialized, high-frequency financial data feed API...`; // Abridged for clarity, use the existing prompt
+  async findOpportunities(): Promise<OpportunitySearchResponse> {
+    try {
+      // Step 1: Gather raw intelligence from the web as plain text.
+      const rawIntelligence = await this.gatherMarketIntelligence();
+
+      // Step 2: Structure the raw intelligence into a clean JSON object.
+      const structuredResponse = await this.structureOpportunities(rawIntelligence);
+            
+      return structuredResponse;
+    } catch (error) {
+      console.error('[AnalysisService] CRITICAL FAILURE in findOpportunities pipeline:', error);
+      if (error && typeof error === 'object' && 'message' in error) {
+        console.error('[AnalysisService] Detailed Error Message:', (error as Error).message);
+      }
+      throw new Error('[FRONTEND-VISIBLE ERROR] Opportunity search failed. Please try again later.');
+    }
+  }
+
+  private async gatherMarketIntelligence(): Promise<string> {
+    const model = this.genAI.getGenerativeModel({
+      model: "gemini-1.5-pro",
+    });
+
+    const intelligencePrompt = `
+You are a highly disciplined financial data analyst. Your task is to execute a multi-step filtering process to identify potential value investment candidates from the US stock market, and then summarize your findings in a simple text format.
+
+**MANDATORY EXECUTION PROTOCOL:**
+
+**Step 1: Broad Scan.**
+- Use your search tool with queries like: "stock screener low P/E high ROE US", "companies trading below book value low debt", "undervalued dividend aristocrats".
+- Generate an initial, broad list of 15-20 potential company tickers.
+
+**Step 2: Strict Quantitative Filtering.**
+- For EACH ticker from Step 1, use your search tool to find its latest financial data.
+- A candidate ONLY SURVIVES this step if it meets AT LEAST THREE of the following five criteria:
+  1.  **Price-to-Earnings (P/E) Ratio:** Is it below 15 AND below its industry average?
+  2.  **Price-to-Book (P/B) Ratio:** Is it below 1.5?
+  3.  **Debt-to-Equity Ratio:** Is it below 0.5?
+  4.  **Return on Equity (ROE):** Has it been consistently above 10% for the last 3 years?
+  5.  **Price-to-Free-Cash-Flow (P/FCF):** Is it below 15?
+
+**Step 3: Brief Qualitative Check.**
+- For the few companies that survived Step 2, perform a quick search to verify they are not obvious "value traps".
+- Ask: "Is this company in a structurally declining industry?" or "Is there a major, company-destroying scandal?". Discard any that fail this check.
+
+**Step 4: Final Summary Generation.**
+- Produce a simple text summary of the FINAL list of companies that passed all filters.
+- For each company, provide its name, ticker, and a one-sentence summary explaining WHICH specific quantitative and qualitative criteria it passed.
+- Example Summary: "Johnson & Johnson (JNJ): Passed filter with a consistent ROE above 25%, a reasonable P/E ratio, and a durable competitive moat in the healthcare sector."
+
+Your final output must be only the unstructured text summary of your findings.
+    `;
+
     const request = {
-      contents: [{ role: 'user', parts: [{ text: this.buildMarketDataPrompt(ticker) }] }],
+      contents: [{ role: 'user', parts: [{ text: intelligencePrompt }] }],
+      tools: [{ google_search_retrieval: {} }],
+    };
+
+    // @ts-ignore
+    const result = await model.generateContent(request);
+    return result.response.text();
+  }
+
+  private async structureOpportunities(intelligence: string): Promise<OpportunitySearchResponse> {
+    const model = this.genAI.getGenerativeModel({
+      model: "gemini-1.5-pro",
+      generationConfig: {
+        temperature: 0.1, // Be very precise
+        responseMimeType: "application/json",
+        responseSchema: OPPORTUNITY_SEARCH_SCHEMA as any,
+      },
+    });
+
+    const structuringPrompt = `
+You are a data structuring and validation API. Your task is to analyze the following raw text, which contains potential investment opportunities. Your goal is to act as a final filter, only selecting the opportunities that hold up to scrutiny based *solely on the information within the provided text*.
+
+**Your Process:**
+1.  **Parse:** Identify each company, its ticker, and the initial investment thesis from the 'Raw Intelligence Text' below.
+2.  **Synthesize & Validate:** For each candidate, analyze the provided thesis. Does it mention strong fundamentals (low debt, high cash flow, moat)? Does it imply a non-hostile technical or sentiment picture?
+3.  **Formulate Thesis:** Re-write the 'opportunityThesis' in your own words, synthesizing the key points into a coherent, skeptical summary, consistent with the "Skeptic Mechanic" philosophy of Signal-360.
+4.  **Filter:** If the provided text for a company is weak, vague, or mentions significant risks without strong counterpoints, **you must discard it**. Only output the opportunities that have a compelling, data-supported thesis *within the text itself*.
+
+Format your final, filtered list precisely into a JSON object that conforms to the provided schema. If no candidates pass your filter, return an empty "opportunities" array.
+
+**Raw Intelligence Text:**
+---
+${intelligence}
+---
+    `;
+
+    const result = await model.generateContent(structuringPrompt);
+    const responseText = result.response.text();
+    return JSON.parse(responseText) as OpportunitySearchResponse;
+  }
+
+  private async getMarketData(ticker: string, retries = 3): Promise<Record<string, any>> {
+    const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const prompt = this.buildMarketDataPrompt(ticker);
+    const request = {
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
       tools: [{ google_search_retrieval: {} }],
       generationConfig: { temperature: 0.1, maxOutputTokens: 2048 }
     };
 
-    try {
-      // @ts-ignore
-      const result = await model.generateContent(request);
-      const responseText = result.response.text();
-      const marketData = this.parseMarketData(responseText);
-      if (marketData.currentPrice === -1 || marketData.priceTimestamp === null) {
-        throw new Error(`Could not retrieve a live market price for ${ticker}.`);
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        // @ts-ignore
+        const result = await model.generateContent(request);
+        const responseText = result.response.text();
+        const marketData = this.parseMarketData(responseText);
+                
+        // Success condition: price is valid
+        if (marketData.currentPrice !== -1 && marketData.priceTimestamp !== null) {
+          return marketData;
+        }
+
+        // If price is invalid, it's a "soft" failure, so we'll let it retry
+        console.warn(`[AnalysisService] getMarketData attempt ${attempt} for ${ticker} returned invalid price. Retrying...`);
+      } catch (apiError) {
+        console.error(`[AnalysisService] getMarketData attempt ${attempt} for ${ticker} failed with API error:`, apiError);
+        // For a hard API error, we only retry if it's not the last attempt
+        if (attempt === retries) {
+          throw new Error(`Failed to fetch live market data for ${ticker} after ${retries} attempts: ${apiError instanceof Error ? apiError.message : 'Unknown API error'}`);
+        }
       }
-      return marketData;
-    } catch (apiError) {
-      console.error(`[AnalysisService] Gemini API call failed for ${ticker}:`, apiError);
-      throw new Error(`Failed to fetch live market data: ${apiError instanceof Error ? apiError.message : 'Unknown API error'}`);
+      // Wait a bit before the next retry
+      if (attempt < retries) {
+        await new Promise(res => setTimeout(res, 1000)); // 1-second delay
+      }
     }
+
+    // If all retries fail, throw the final error
+    throw new Error(`Could not retrieve a live market price for ${ticker} after ${retries} attempts.`);
   }
 
   private buildMarketDataPrompt(ticker: string): string {
@@ -356,6 +498,32 @@ As the 'Strategic Synthesis' expert, your job is to synthesize the three reports
 - **Synthesis Score:** Calculate a final conviction score (0-100). Start at 50. High convergence and a large margin of safety add points. Significant divergence or high valuation risk subtracts major points.
 
 Now, execute this entire, multi-expert process. Your final output must be ONLY the single JSON object that strictly conforms to the provided response schema. Do not add any text before or after the JSON.
+`;
+  }
+
+  private buildOpportunityPrompt(): string {
+    return `
+You are the 'Signal-360 Opportunity Scout,' an advanced AI system tasked with scanning the US stock market (NYSE, NASDAQ) to identify 3-5 compelling investment opportunities. Your process must be rigorous, skeptical, and holistic, following a multi-step validation protocol.
+
+**PROTOCOL:**
+
+**Step 1: Value-Based Candidate Generation.**
+- Emulate the 'Value Investor's Compass' expert.
+- Scan the market to generate an initial candidate pool of 7-10 companies that meet strict value investing criteria.
+- **Mandatory Quantitative Filters:** P/E Ratio < 15, Debt-to-Equity < 0.5, and consistent ROE > 10%.
+- **Mandatory Qualitative Filter:** Evidence of a durable economic moat.
+
+**Step 2: Holistic Validation.**
+- For each candidate, you must perform the following validation checks:
+- **Sentiment Check (as 'Eco Corporativo'):** Is the market narrative surrounding this stock related to a temporary issue or a permanent business impairment?
+- **Technical Check (as 'QuantumLeap Speculator'):** Is this stock a 'falling knife' in an unabated downtrend, or are there signs of price stabilization?
+
+**Step 3: Final Synthesis & Selection.**
+- Discard any candidate that fails the validation checks (permanent impairment or severe downtrend).
+- From the remaining candidates, select the top 3-5 with the best combination of value, manageable narrative, and a non-hostile technical setup.
+- For each final selection, formulate a concise 'Opportunity Thesis'.
+
+Your final output must be ONLY the JSON object that strictly conforms to the provided response schema. Do not add any text before or after the JSON.
 `;
   }
 }

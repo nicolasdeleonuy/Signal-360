@@ -656,7 +656,7 @@ export const TickerSearch: React.FC<TickerSearchProps> = (props) => {
     <div className={`ticker-search-container relative w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg mx-auto ${className}`}>
       {/* Helper text */}
       {!state.hasUserInteracted && (
-        <div className="ticker-search-helper mb-2 text-xs sm:text-sm text-slate-600 text-center">
+        <div className="ticker-search-helper mb-2 text-xs sm:text-sm text-gray-400 text-center">
           <span className="hidden sm:inline">Start typing a ticker symbol or company name to see suggestions</span>
           <span className="sm:hidden">Type ticker symbol for suggestions</span>
         </div>

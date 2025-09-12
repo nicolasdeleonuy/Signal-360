@@ -154,9 +154,6 @@ export function LoginPage() {
                 </div>
               </div>
               <div>
-                <h1 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-cyan-300 bg-clip-text text-transparent">
-                  Signal-360
-                </h1>
                 <p className="text-xl lg:text-2xl text-gray-300 font-medium">
                   Your AI-Powered Investment Co-Pilot
                 </p>
