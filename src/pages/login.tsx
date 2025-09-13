@@ -165,297 +165,311 @@ export function LoginPage() {
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-cyan-400/10 to-purple-600/10 rounded-full blur-3xl animate-pulse delay-500" />
       </div>
 
-      {/* Three-Column Manifesto Layout */}
-      <div className="relative z-10 flex-1 grid grid-cols-1 xl:grid-cols-3 min-h-0">
-        
-        {/* Left Column - Brand Manifesto */}
-        <div className="flex flex-col justify-center px-4 sm:px-6 lg:px-8 xl:px-6 py-6 lg:py-8 xl:py-12 order-1">
-          <div className="max-w-lg mx-auto xl:mx-0">
+      {/* Universal Page Header */}
+      <header className="relative z-10 px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col items-center text-center space-y-4 lg:space-y-6">
             {/* Logo and Brand Identity */}
-            <div className="flex items-center space-x-3 mb-8 xl:mb-10">
+            <div className="flex items-center space-x-4">
               <div className="relative">
                 <img 
                   src="/logos/LogoCompass.webp" 
                   alt="Value Investor's Compass Logo" 
-                  className="w-12 h-12 lg:w-16 lg:h-16"
+                  className="w-16 h-16 lg:w-20 lg:h-20"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
                     (e.currentTarget.nextElementSibling as HTMLElement)!.style.display = 'flex';
                   }}
                 />
-                <div className="w-12 h-12 lg:w-16 lg:h-16 bg-gradient-to-br from-cyan-400 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl hidden">
-                  <span className="text-white font-bold text-xl lg:text-2xl">V</span>
+                <div className="w-16 h-16 lg:w-20 lg:h-20 bg-gradient-to-br from-cyan-400 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl hidden">
+                  <span className="text-white font-bold text-2xl lg:text-3xl">V</span>
                 </div>
               </div>
               <div>
-                <h1 className="text-lg lg:text-2xl xl:text-xl bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent font-bold leading-tight">
+                <h1 className="text-2xl lg:text-3xl bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent font-bold leading-tight">
                   Value Investor's Compass
                 </h1>
-                <p className="text-sm lg:text-lg xl:text-base text-gray-300 font-medium">
+                <p className="text-lg lg:text-xl text-gray-300 font-medium">
                   Disciplined Value Investing Through AI
                 </p>
               </div>
             </div>
-
-            {/* Main Headline */}
-            <div className="mb-8 xl:mb-10">
-              <h2 className="text-2xl lg:text-4xl xl:text-3xl font-bold text-white leading-tight">
+            
+            {/* Main Slogan */}
+            <div>
+              <h2 className="text-3xl lg:text-4xl xl:text-5xl font-bold text-white leading-tight">
                 Your Unbiased Second Opinion
               </h2>
             </div>
-
-            {/* Core Benefits */}
-            <div className="space-y-6 xl:space-y-7">
-              <div className="flex items-start space-x-4">
-                <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-cyan-400/20 to-purple-400/20 border border-cyan-400/30 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <div className="text-cyan-400">
-                    <AnalysisIcon />
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-lg lg:text-xl xl:text-lg font-bold text-white mb-2">
-                    Save Countless Hours
-                  </h3>
-                  <p className="text-gray-300 leading-relaxed text-sm lg:text-base xl:text-sm">
-                    We distill complex financial data into a clear, actionable thesis in seconds.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-4">
-                <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-purple-400/20 to-cyan-400/20 border border-purple-400/30 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <div className="text-purple-400">
-                    <VisionIcon />
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-lg lg:text-xl xl:text-lg font-bold text-white mb-2">
-                    Invest with Discipline
-                  </h3>
-                  <p className="text-gray-300 leading-relaxed text-sm lg:text-base xl:text-sm">
-                    Our analysis is anchored in a strict, value-first philosophy. No hype, just data.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-4">
-                <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-cyan-400/20 to-purple-400/20 border border-cyan-400/30 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <div className="text-cyan-400">
-                    <ConfidenceIcon />
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-lg lg:text-xl xl:text-lg font-bold text-white mb-2">
-                    Gain True Confidence
-                  </h3>
-                  <p className="text-gray-300 leading-relaxed text-sm lg:text-base xl:text-sm">
-                    Make smarter decisions with a powerful AI analyst by your side.
-                  </p>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
+      </header>
 
-        {/* Center Column - Action Panel */}
-        <div className="flex items-center justify-center px-4 sm:px-6 lg:px-8 xl:px-6 py-6 lg:py-8 xl:py-12 order-2">
-          <div className="w-full max-w-md xl:max-w-sm">
-            {/* Glassmorphism Login Card */}
-            <div className="relative backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl shadow-2xl p-6 lg:p-8 xl:p-6">
-              {/* Glassmorphism gradient overlay */}
-              <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
-              
-              <div className="relative z-10">
-                <h2 className="text-2xl lg:text-3xl xl:text-2xl font-bold text-white text-center mb-6 lg:mb-8 xl:mb-6">
-                  Sign In
-                </h2>
-
-                {from !== '/profile' && (
-                  <div className="backdrop-blur-sm bg-cyan-500/20 border border-cyan-400/30 rounded-xl p-3 lg:p-4 xl:p-3 mb-4 lg:mb-6 xl:mb-4">
-                    <p className="text-cyan-200 text-center text-xs lg:text-sm xl:text-xs">
-                      Please sign in to access this page.
-                    </p>
-                  </div>
-                )}
-
-                {errors.general && (
-                  <div className="backdrop-blur-sm bg-red-500/20 border border-red-400/30 rounded-xl p-3 lg:p-4 xl:p-3 mb-4 lg:mb-6 xl:mb-4">
-                    <p className="text-red-200 text-center text-xs lg:text-sm xl:text-xs">
-                      {errors.general}
-                    </p>
-                  </div>
-                )}
-
-                <form onSubmit={handleSubmit} className="space-y-4 lg:space-y-6 xl:space-y-4">
-                  <div>
-                    <label htmlFor="email" className="block text-gray-200 font-medium mb-2 text-xs lg:text-sm xl:text-xs">
-                      Email Address
-                    </label>
-                    <input
-                      type="email"
-                      id="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      className={`w-full px-3 py-2 lg:px-4 lg:py-3 xl:px-3 xl:py-2 backdrop-blur-sm bg-white/10 border rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition-all duration-300 text-xs lg:text-sm xl:text-xs ${
-                        errors.email ? 'border-red-400/50' : 'border-white/20 hover:border-white/30'
-                      }`}
-                      placeholder="Enter your email"
-                      disabled={isSubmitting}
-                      autoComplete="email"
-                    />
-                    {errors.email && (
-                      <p className="text-red-300 text-xs mt-1 lg:mt-2 xl:mt-1">
-                        {errors.email}
+      {/* Main Content Grid */}
+      <div className="relative z-10 flex-1 px-4 sm:px-6 lg:px-8 pb-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 min-h-0">
+            
+            {/* Column 1 - Icon Manifesto */}
+            <div className="flex flex-col justify-center">
+              <div className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-2xl p-6">
+                <h3 className="text-xl lg:text-2xl font-bold text-white mb-6 text-center">
+                  Core Benefits
+                </h3>
+                
+                <div className="space-y-6">
+                  <div className="flex items-start space-x-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-cyan-400/20 to-purple-400/20 border border-cyan-400/30 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <div className="text-cyan-400">
+                        <AnalysisIcon />
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-bold text-white mb-2">
+                        Save Countless Hours
+                      </h4>
+                      <p className="text-gray-300 leading-relaxed text-sm">
+                        We distill complex financial data into a clear, actionable thesis in seconds.
                       </p>
-                    )}
+                    </div>
                   </div>
 
-                  <div>
-                    <label htmlFor="password" className="block text-gray-200 font-medium mb-2 text-xs lg:text-sm xl:text-xs">
-                      Password
-                    </label>
-                    <input
-                      type="password"
-                      id="password"
-                      name="password"
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      className={`w-full px-3 py-2 lg:px-4 lg:py-3 xl:px-3 xl:py-2 backdrop-blur-sm bg-white/10 border rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition-all duration-300 text-xs lg:text-sm xl:text-xs ${
-                        errors.password ? 'border-red-400/50' : 'border-white/20 hover:border-white/30'
-                      }`}
-                      placeholder="Enter your password"
-                      disabled={isSubmitting}
-                      autoComplete="current-password"
-                    />
-                    {errors.password && (
-                      <p className="text-red-300 text-xs mt-1 lg:mt-2 xl:mt-1">
-                        {errors.password}
+                  <div className="flex items-start space-x-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-purple-400/20 to-cyan-400/20 border border-purple-400/30 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <div className="text-purple-400">
+                        <VisionIcon />
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-bold text-white mb-2">
+                        Invest with Discipline
+                      </h4>
+                      <p className="text-gray-300 leading-relaxed text-sm">
+                        Our analysis is anchored in a strict, value-first philosophy. No hype, just data.
                       </p>
-                    )}
+                    </div>
                   </div>
 
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 disabled:from-gray-600 disabled:to-gray-600 text-white font-bold py-3 lg:py-4 xl:py-3 px-6 lg:px-8 xl:px-6 rounded-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:ring-offset-gray-900 shadow-xl hover:shadow-2xl hover:shadow-cyan-500/25 transform hover:-translate-y-1 hover:scale-105 disabled:hover:transform-none disabled:hover:shadow-xl border border-cyan-400/20 backdrop-blur-sm text-sm lg:text-base xl:text-sm disabled:cursor-not-allowed"
-                  >
-                    {isSubmitting ? 'Signing In...' : 'Sign In'}
-                  </button>
-                </form>
+                  <div className="flex items-start space-x-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-cyan-400/20 to-purple-400/20 border border-cyan-400/30 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <div className="text-cyan-400">
+                        <ConfidenceIcon />
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-bold text-white mb-2">
+                        Gain True Confidence
+                      </h4>
+                      <p className="text-gray-300 leading-relaxed text-sm">
+                        Make smarter decisions with a powerful AI analyst by your side.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-                <div className="text-center mt-6 lg:mt-8 xl:mt-6">
-                  <p className="text-gray-300 text-xs lg:text-sm xl:text-xs">
-                    Don't have an account?{' '}
-                    <Link 
-                      to="/sign-up" 
-                      className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors duration-300 hover:underline"
-                    >
-                      Create one here
-                    </Link>
+            {/* Column 2 - Action Panel */}
+            <div className="flex items-center justify-center">
+              <div className="w-full max-w-md">
+                {/* Glassmorphism Login Card */}
+                <div className="relative backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl shadow-2xl p-8">
+                  {/* Glassmorphism gradient overlay */}
+                  <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+                  
+                  <div className="relative z-10">
+                    <h2 className="text-2xl lg:text-3xl font-bold text-white text-center mb-8">
+                      Sign In
+                    </h2>
+
+                    {from !== '/profile' && (
+                      <div className="backdrop-blur-sm bg-cyan-500/20 border border-cyan-400/30 rounded-xl p-4 mb-6">
+                        <p className="text-cyan-200 text-center text-sm">
+                          Please sign in to access this page.
+                        </p>
+                      </div>
+                    )}
+
+                    {errors.general && (
+                      <div className="backdrop-blur-sm bg-red-500/20 border border-red-400/30 rounded-xl p-4 mb-6">
+                        <p className="text-red-200 text-center text-sm">
+                          {errors.general}
+                        </p>
+                      </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                      <div>
+                        <label htmlFor="email" className="block text-gray-200 font-medium mb-2 text-sm">
+                          Email Address
+                        </label>
+                        <input
+                          type="email"
+                          id="email"
+                          name="email"
+                          value={formData.email}
+                          onChange={handleInputChange}
+                          className={`w-full px-4 py-3 backdrop-blur-sm bg-white/10 border rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition-all duration-300 text-sm ${
+                            errors.email ? 'border-red-400/50' : 'border-white/20 hover:border-white/30'
+                          }`}
+                          placeholder="Enter your email"
+                          disabled={isSubmitting}
+                          autoComplete="email"
+                        />
+                        {errors.email && (
+                          <p className="text-red-300 text-xs mt-2">
+                            {errors.email}
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label htmlFor="password" className="block text-gray-200 font-medium mb-2 text-sm">
+                          Password
+                        </label>
+                        <input
+                          type="password"
+                          id="password"
+                          name="password"
+                          value={formData.password}
+                          onChange={handleInputChange}
+                          className={`w-full px-4 py-3 backdrop-blur-sm bg-white/10 border rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition-all duration-300 text-sm ${
+                            errors.password ? 'border-red-400/50' : 'border-white/20 hover:border-white/30'
+                          }`}
+                          placeholder="Enter your password"
+                          disabled={isSubmitting}
+                          autoComplete="current-password"
+                        />
+                        {errors.password && (
+                          <p className="text-red-300 text-xs mt-2">
+                            {errors.password}
+                          </p>
+                        )}
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 disabled:from-gray-600 disabled:to-gray-600 text-white font-bold py-4 px-8 rounded-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:ring-offset-gray-900 shadow-xl hover:shadow-2xl hover:shadow-cyan-500/25 transform hover:-translate-y-1 hover:scale-105 disabled:hover:transform-none disabled:hover:shadow-xl border border-cyan-400/20 backdrop-blur-sm text-base disabled:cursor-not-allowed"
+                      >
+                        {isSubmitting ? 'Signing In...' : 'Sign In'}
+                      </button>
+                    </form>
+
+                    <div className="text-center mt-8">
+                      <p className="text-gray-300 text-sm">
+                        Don't have an account?{' '}
+                        <Link 
+                          to="/sign-up" 
+                          className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors duration-300 hover:underline"
+                        >
+                          Create one here
+                        </Link>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Column 3 - Value Proposition */}
+            <div className="flex flex-col justify-center">
+              <div className="max-w-lg mx-auto lg:mx-0">
+                {/* Main Headline */}
+                <div className="mb-8">
+                  <h2 className="text-2xl lg:text-3xl font-bold text-white leading-tight mb-3">
+                    Upgrade Your Investment Process
+                  </h2>
+                  <p className="text-lg lg:text-xl text-cyan-300 font-semibold">
+                    Save 20+ hours a week
+                  </p>
+                </div>
+
+                {/* Benefit Cards */}
+                <div className="space-y-4 mb-8">
+                  <div className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/10 transition-all duration-300">
+                    <div className="flex items-start space-x-3">
+                      <div className="w-8 h-8 bg-gradient-to-br from-yellow-400/20 to-orange-400/20 border border-yellow-400/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <div className="text-yellow-400">
+                          <LightningIcon />
+                        </div>
+                      </div>
+                      <div>
+                        <h3 className="text-base font-bold text-white mb-1">
+                          Instant Analysis
+                        </h3>
+                        <p className="text-gray-300 text-xs leading-relaxed">
+                          Get Warren Buffett-style analysis in 30 seconds, not 30 hours.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/10 transition-all duration-300">
+                    <div className="flex items-start space-x-3">
+                      <div className="w-8 h-8 bg-gradient-to-br from-blue-400/20 to-indigo-400/20 border border-blue-400/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <div className="text-blue-400">
+                          <BrainIcon />
+                        </div>
+                      </div>
+                      <div>
+                        <h3 className="text-base font-bold text-white mb-1">
+                          Zero Emotions, Pure Logic
+                        </h3>
+                        <p className="text-gray-300 text-xs leading-relaxed">
+                          AI never gets greedy, fearful, or makes impulsive decisions.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/10 transition-all duration-300">
+                    <div className="flex items-start space-x-3">
+                      <div className="w-8 h-8 bg-gradient-to-br from-purple-400/20 to-pink-400/20 border border-purple-400/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <div className="text-purple-400">
+                          <StarIcon />
+                        </div>
+                      </div>
+                      <div>
+                        <h3 className="text-base font-bold text-white mb-1">
+                          Find Hidden Gems
+                        </h3>
+                        <p className="text-gray-300 text-xs leading-relaxed">
+                          Discover undervalued companies before the market does.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-2xl p-4 hover:bg-white/10 transition-all duration-300">
+                    <div className="flex items-start space-x-3">
+                      <div className="w-8 h-8 bg-gradient-to-br from-green-400/20 to-emerald-400/20 border border-green-400/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <div className="text-green-400">
+                          <ShieldIcon />
+                        </div>
+                      </div>
+                      <div>
+                        <h3 className="text-base font-bold text-white mb-1">
+                          Avoid Costly Mistakes
+                        </h3>
+                        <p className="text-gray-300 text-xs leading-relaxed">
+                          Our AI spots red flags that human investors often miss.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Call to Action */}
+                <div className="backdrop-blur-sm bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-cyan-400/30 rounded-2xl p-6 text-center">
+                  <h3 className="text-lg font-bold text-white mb-2">
+                    Ready to Invest Smarter?
+                  </h3>
+                  <p className="text-cyan-200 text-sm">
+                    Join thousands of investors making better decisions with AI-powered analysis.
                   </p>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column - Value Proposition */}
-        <div className="flex flex-col justify-center px-4 sm:px-6 lg:px-8 xl:px-6 py-6 lg:py-8 xl:py-12 order-3">
-          <div className="max-w-lg mx-auto xl:mx-0">
-            {/* Main Headline */}
-            <div className="mb-8 xl:mb-10">
-              <h2 className="text-2xl lg:text-4xl xl:text-3xl font-bold text-white leading-tight mb-3 lg:mb-4 xl:mb-3">
-                Upgrade Your Investment Process
-              </h2>
-              <p className="text-lg lg:text-2xl xl:text-xl text-cyan-300 font-semibold">
-                Save 20+ hours a week
-              </p>
-            </div>
-
-            {/* Benefit Cards */}
-            <div className="space-y-4 xl:space-y-5 mb-8 xl:mb-10">
-              <div className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-2xl p-4 xl:p-5 hover:bg-white/10 transition-all duration-300">
-                <div className="flex items-start space-x-3">
-                  <div className="w-8 h-8 lg:w-10 lg:h-10 bg-gradient-to-br from-yellow-400/20 to-orange-400/20 border border-yellow-400/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <div className="text-yellow-400">
-                      <LightningIcon />
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="text-base lg:text-lg xl:text-base font-bold text-white mb-1">
-                      Instant Analysis
-                    </h3>
-                    <p className="text-gray-300 text-xs lg:text-sm xl:text-xs leading-relaxed">
-                      Get Warren Buffett-style analysis in 30 seconds, not 30 hours.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-2xl p-4 xl:p-5 hover:bg-white/10 transition-all duration-300">
-                <div className="flex items-start space-x-3">
-                  <div className="w-8 h-8 lg:w-10 lg:h-10 bg-gradient-to-br from-blue-400/20 to-indigo-400/20 border border-blue-400/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <div className="text-blue-400">
-                      <BrainIcon />
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="text-base lg:text-lg xl:text-base font-bold text-white mb-1">
-                      Zero Emotions, Pure Logic
-                    </h3>
-                    <p className="text-gray-300 text-xs lg:text-sm xl:text-xs leading-relaxed">
-                      AI never gets greedy, fearful, or makes impulsive decisions.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-2xl p-4 xl:p-5 hover:bg-white/10 transition-all duration-300">
-                <div className="flex items-start space-x-3">
-                  <div className="w-8 h-8 lg:w-10 lg:h-10 bg-gradient-to-br from-purple-400/20 to-pink-400/20 border border-purple-400/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <div className="text-purple-400">
-                      <StarIcon />
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="text-base lg:text-lg xl:text-base font-bold text-white mb-1">
-                      Find Hidden Gems
-                    </h3>
-                    <p className="text-gray-300 text-xs lg:text-sm xl:text-xs leading-relaxed">
-                      Discover undervalued companies before the market does.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-2xl p-4 xl:p-5 hover:bg-white/10 transition-all duration-300">
-                <div className="flex items-start space-x-3">
-                  <div className="w-8 h-8 lg:w-10 lg:h-10 bg-gradient-to-br from-green-400/20 to-emerald-400/20 border border-green-400/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <div className="text-green-400">
-                      <ShieldIcon />
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="text-base lg:text-lg xl:text-base font-bold text-white mb-1">
-                      Avoid Costly Mistakes
-                    </h3>
-                    <p className="text-gray-300 text-xs lg:text-sm xl:text-xs leading-relaxed">
-                      Our AI spots red flags that human investors often miss.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Call to Action */}
-            <div className="backdrop-blur-sm bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-cyan-400/30 rounded-2xl p-4 xl:p-6 text-center">
-              <h3 className="text-lg lg:text-xl xl:text-lg font-bold text-white mb-2">
-                Ready to Invest Smarter?
-              </h3>
-              <p className="text-cyan-200 text-sm lg:text-base xl:text-sm">
-                Join thousands of investors making better decisions with AI-powered analysis.
-              </p>
             </div>
           </div>
         </div>

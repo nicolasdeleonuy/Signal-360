@@ -215,6 +215,7 @@ export function DashboardPage() {
               title="Go From Ticker to Thesis in Seconds"
               description="Skip hours of research. Get a clear, actionable investment verdict backed by comprehensive analysis in moments."
               isPrimary={true}
+              className="relative z-10"
             >
               <div className="space-y-6 h-full flex flex-col">
                 <div className="backdrop-blur-sm bg-gradient-to-br from-cyan-500/20 to-purple-500/20 border border-cyan-400/30 rounded-2xl p-6 flex-1">

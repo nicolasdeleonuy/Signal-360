@@ -281,7 +281,7 @@ const ResultsPage: React.FC = () => {
             {/* Sentiment Overview */}
             <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl p-8 shadow-2xl">
               <h3 className="text-3xl font-bold text-white mb-3 bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-                Eco Corporativo
+                Market Sentiment
               </h3>
               <p className="text-lg text-gray-400 mb-6">
                 Analysis of news, social media, and market sentiment.
@@ -355,7 +355,7 @@ const ResultsPage: React.FC = () => {
             {/* Technical Overview */}
             <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl p-8 shadow-2xl">
               <h3 className="text-3xl font-bold text-white mb-3 bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">
-                QuantumLeap Speculator
+                Technical Timing
               </h3>
               <p className="text-lg text-gray-400 mb-6">
                 Technical analysis to identify opportune entry points for investors.
@@ -486,7 +486,6 @@ const ResultsPage: React.FC = () => {
             <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-2 shadow-2xl">
               <div className="flex flex-wrap gap-2">
                 {tabs.map((tab) => {
-                  // Define subtitles for all tabs
                   const getTabSubtitle = (tabName: TabType) => {
                     switch (tabName) {
                       case 'Verdict':
@@ -511,7 +510,7 @@ const ResultsPage: React.FC = () => {
                       onClick={() => !disabled && setActiveTab(tab)}
                       disabled={disabled}
                       className={`
-                        flex-1 min-w-0 px-6 py-4 rounded-xl font-semibold text-sm lg:text-base transition-all duration-300 
+                        flex-1 min-w-0 px-3 py-3 lg:px-6 lg:py-4 rounded-xl font-semibold text-sm lg:text-base transition-all duration-300 
                         focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:ring-offset-gray-900
                         ${activeTab === tab
                           ? 'bg-gradient-to-r from-cyan-500/30 to-purple-500/30 border border-cyan-400/50 text-white shadow-lg shadow-cyan-500/25 transform scale-105'
@@ -521,7 +520,7 @@ const ResultsPage: React.FC = () => {
                     >
                       <div className="text-center">
                         <div className="font-semibold">{tab}</div>
-                        <div className="text-xs mt-1 opacity-75 font-normal leading-tight">
+                        <div className="text-xs mt-1 opacity-75 font-normal leading-tight line-clamp-2 hidden sm:block">
                           {subtitle}
                         </div>
                       </div>
