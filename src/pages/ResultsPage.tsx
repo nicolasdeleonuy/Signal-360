@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useSignalAnalysis } from '../hooks/useSignalAnalysis';
 import InteractiveDCF from '../components/analysis/InteractiveDCF';
 
-type TabType = 'Verdict' | 'Value Analysis' | 'Market Pulse' | 'Timing';
+type TabType = 'Verdict' | 'Value Analysis' | 'Market Sentiment' | 'Technical Timing';
 
 // Helper function to get score color based on value
 const getScoreColor = (score: number) => {
@@ -29,7 +29,7 @@ const ResultsPage: React.FC = () => {
     }
   }, [runAnalysis, ticker]);
 
-  const tabs: TabType[] = ['Verdict', 'Value Analysis', 'Market Pulse', 'Timing'];
+  const tabs: TabType[] = ['Verdict', 'Value Analysis', 'Market Sentiment', 'Technical Timing'];
 
   const renderLoadingState = () => (
     <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
@@ -267,7 +267,7 @@ const ResultsPage: React.FC = () => {
             <InteractiveDCF initialData={fundamental} currentPrice={data.marketData.currentPrice} />
           </div>
         );
-      case 'Market Pulse':
+      case 'Market Sentiment':
         const sentiment = data.sentiment;
         return (
           <div className="space-y-8">
@@ -341,7 +341,7 @@ const ResultsPage: React.FC = () => {
             </div>
           </div>
         );
-      case 'Timing':
+      case 'Technical Timing':
         const technical = data.technical;
         return (
           <div className="space-y-8">
@@ -478,22 +478,47 @@ const ResultsPage: React.FC = () => {
           <div className="mb-8">
             <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-2 shadow-2xl">
               <div className="flex flex-wrap gap-2">
-                {tabs.map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`
-                      flex-1 min-w-0 px-6 py-4 rounded-xl font-semibold text-sm lg:text-base transition-all duration-300 
-                      focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:ring-offset-gray-900
-                      ${activeTab === tab
-                        ? 'bg-gradient-to-r from-cyan-500/30 to-purple-500/30 border border-cyan-400/50 text-white shadow-lg shadow-cyan-500/25 transform scale-105'
-                        : 'bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 hover:border-white/20 hover:text-white hover:scale-102'
-                      }
-                    `}
-                  >
-                    {tab}
-                  </button>
-                ))}
+                {tabs.map((tab) => {
+                  // Define subtitles for all tabs
+                  const getTabSubtitle = (tabName: TabType) => {
+                    switch (tabName) {
+                      case 'Verdict':
+                        return 'Synthesized verdict and final recommendation.';
+                      case 'Value Analysis':
+                        return 'Deep-dive into business quality and intrinsic value.';
+                      case 'Market Sentiment':
+                        return 'Analysis of news and social sentiment for context.';
+                      case 'Technical Timing':
+                        return 'Context on the current price trend and key technical levels.';
+                      default:
+                        return null;
+                    }
+                  };
+
+                  const subtitle = getTabSubtitle(tab);
+
+                  return (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={`
+                        flex-1 min-w-0 px-6 py-4 rounded-xl font-semibold text-sm lg:text-base transition-all duration-300 
+                        focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:ring-offset-gray-900
+                        ${activeTab === tab
+                          ? 'bg-gradient-to-r from-cyan-500/30 to-purple-500/30 border border-cyan-400/50 text-white shadow-lg shadow-cyan-500/25 transform scale-105'
+                          : 'bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 hover:border-white/20 hover:text-white hover:scale-102'
+                        }
+                      `}
+                    >
+                      <div className="text-center">
+                        <div className="font-semibold">{tab}</div>
+                        <div className="text-xs mt-1 opacity-75 font-normal leading-tight">
+                          {subtitle}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>

@@ -70,11 +70,11 @@ export interface InvestmentAnalysisResponse {
 export interface Opportunity {
   ticker: string;
   companyName: string;
-  opportunityThesis: string;
+  reason: string;
 }
 
 export interface OpportunitySearchResponse {
-  opportunities: Opportunity[];
+  ideas: Opportunity[];
 }
 
 // Main interface for the service
@@ -84,25 +84,7 @@ export interface IAnalysisService {
   findOpportunities(): Promise<OpportunitySearchResponse>;
 }
 
-// Schema for opportunity search response
-const OPPORTUNITY_SEARCH_SCHEMA = {
-  type: "object",
-  properties: {
-    opportunities: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          ticker: { type: "string" },
-          companyName: { type: "string" },
-          opportunityThesis: { type: "string", description: "A 2-3 sentence summary explaining the holistic reason for selection." }
-        },
-        required: ["ticker", "companyName", "opportunityThesis"]
-      }
-    }
-  },
-  required: ["opportunities"]
-};
+
 
 // The definitive schema that dictates the AI's output structure.
 const ANALYSIS_RESPONSE_SCHEMA_V5 = {
@@ -270,176 +252,160 @@ export class AnalysisService implements IAnalysisService {
 
   async findOpportunities(): Promise<OpportunitySearchResponse> {
     try {
-      // Step 1: Gather raw intelligence from the web as plain text.
-      const rawIntelligence = await this.gatherMarketIntelligence();
+      const prompt = this.buildOpportunitiesPrompt();
+      
+      const model = this.genAI.getGenerativeModel({
+        model: "gemini-1.5-pro",
+      });
 
-      // Step 2: Structure the raw intelligence into a clean JSON object.
-      const structuredResponse = await this.structureOpportunities(rawIntelligence);
-            
-      return structuredResponse;
-    } catch (error) {
-      console.error('[AnalysisService] CRITICAL FAILURE in findOpportunities pipeline:', error);
-      if (error && typeof error === 'object' && 'message' in error) {
-        console.error('[AnalysisService] Detailed Error Message:', (error as Error).message);
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        tools: [{ google_search_retrieval: {} }],
+      });
+
+      const response = result.response;
+      const responseText = response.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!responseText) {
+        throw new Error("Received an empty response from the AI model.");
       }
-      throw new Error('[FRONTEND-VISIBLE ERROR] Opportunity search failed. Please try again later.');
+
+      // The response is expected to be a clean JSON string.
+      const parsedResponse = this.parseJsonFromResponse(responseText);
+
+      // Basic validation to ensure the response has the 'ideas' key.
+      if (!parsedResponse || !Array.isArray(parsedResponse.ideas)) {
+        throw new Error("Invalid JSON structure received from the AI. 'ideas' array is missing.");
+      }
+
+      return parsedResponse;
+    } catch (error) {
+      console.error('[AnalysisService] CRITICAL FAILURE in findOpportunities:', error);
+      throw new Error('Opportunity search failed due to a technical issue with the AI model.');
     }
   }
 
-  private async gatherMarketIntelligence(): Promise<string> {
-    const model = this.genAI.getGenerativeModel({
-      model: "gemini-1.5-pro",
-    });
 
-    const intelligencePrompt = `
-You are a highly disciplined financial data analyst. Your task is to execute a multi-step filtering process to identify potential value investment candidates from the US stock market, and then summarize your findings in a simple text format.
+
+  private buildOpportunitiesPrompt(): string {
+    // "Master Prompt" for Value-First Opportunity Discovery
+    return `
+Act as an extremely rigorous and quantitative value investing analyst, following a fusion of the methodologies of Benjamin Graham, Warren Buffett, and Joel Greenblatt. Your goal is to find market "bargains": excellent companies at fair prices or fair companies at excellent prices.
+
+Using your real-time search capabilities (Google Search), scan the US stock market (NYSE, NASDAQ) to identify 3 to 5 companies that meet the following STRICT and NON-NEGOTIABLE selection criteria. The company must meet AT LEAST 4 of the 5 quantitative criteria.
+
+**Quantitative Selection Criteria (Mandatory):**
+1.  **Low Valuation (Multiples):**
+    *   Price-to-Earnings (P/E) Ratio < 15.
+    *   AND/OR Price-to-Book (P/B) Ratio < 1.5.
+2.  **Superior and Consistent Profitability:**
+    *   Return on Invested Capital (ROIC) must be consistently > 10% over the last 5 years.
+3.  **Financial Health (Low Leverage):**
+    *   Debt-to-Equity Ratio < 0.5.
+    *   Current Ratio > 1.5.
+4.  **Cash Generation:**
+    *   Price-to-Free-Cash-Flow (P/FCF) < 20.
+5.  **Earnings Growth History:**
+    *   Positive Earnings Per Share (EPS) growth in at least 3 of the last 5 years.
+
+**Qualitative Analysis (Secondary Filter):**
+For companies that pass the quantitative filter, perform a quick qualitative check:
+*   **Economic Moat:** Does the company have a durable competitive advantage (e.g., strong brand, network effect, low costs, intangible assets)?
+*   **Management Quality:** Are there any major red flags regarding the management team? (Quick review, not exhaustive).
+*   **Sector Risks:** Does the company operate in a sector with insurmountable structural headwinds?
+
+**Response Structure:**
+Your ENTIRE response MUST be a single JSON object, with no introductory text, additional explanations, or markdown backticks like \`\`\`json. The JSON must have a single root key "ideas", which is an array of objects. Each object must represent a company and contain EXACTLY the following fields:
+
+- "ticker": string (The uppercase stock symbol).
+- "companyName": string (The full name of the company).
+- "reason": string (A concise 2-3 sentence justification explaining WHY the company is an opportunity. Explicitly cite 2-3 of the strongest quantitative criteria it meets and briefly mention its economic moat. E.g., "Meets strict valuation criteria (P/E of 12, P/B of 1.1) and robust financial health (D/E of 0.3). The company benefits from a strong economic moat based on its globally recognized brand.").
+`;
+  }
+
+  private async getMarketData(ticker: string): Promise<MarketData> {
+    const MAX_RETRIES = 3;
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        console.log(`[AnalysisService] getMarketData attempt ${attempt} for ${ticker}`);
+        const prompt = `
+You are a financial data API. Your only task is to fetch real-time market data for a specific stock ticker using your search tool.
+
+**Ticker:** "${ticker}"
 
 **MANDATORY EXECUTION PROTOCOL:**
+1.  **Primary Search:** Execute a search for the exact ticker "${ticker} stock price".
+2.  **CRITICAL FALLBACK:** If the primary search fails or returns ambiguous results (e.g., for tickers with special characters like '.B'), you MUST execute a second search using common variations. For example, if the ticker is "BRK.B", search for "BRK B stock price" or "Berkshire Hathaway Class B stock price".
+3.  **Data Extraction:** From the most reliable search result, extract the following data points:
+    *   companyName: The full official name of the company.
+    *   currentPrice: The latest stock price, as a number.
+    *   currency: The currency symbol (e.g., USD).
+    *   priceTimestamp: The timestamp of the price data in ISO 8601 format.
+4.  **Verification Step:** Before returning, verify that the 'companyName' you found is plausible for the ticker "${ticker}". If you are not confident in the data, you MUST return a 'currentPrice' of -1 to signal a failure.
+5.  **Output Format:** Your final output must be ONLY the single, clean JSON object with the extracted data. Do not include any other text or markdown.
+`;
 
-**Step 1: Broad Scan.**
-- Use your search tool with queries like: "stock screener low P/E high ROE US", "companies trading below book value low debt", "undervalued dividend aristocrats".
-- Generate an initial, broad list of 15-20 potential company tickers.
+        const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const result = await model.generateContent({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          tools: [{ google_search_retrieval: {} }],
+        });
 
-**Step 2: Strict Quantitative Filtering.**
-- For EACH ticker from Step 1, use your search tool to find its latest financial data.
-- A candidate ONLY SURVIVES this step if it meets AT LEAST THREE of the following five criteria:
-  1.  **Price-to-Earnings (P/E) Ratio:** Is it below 15 AND below its industry average?
-  2.  **Price-to-Book (P/B) Ratio:** Is it below 1.5?
-  3.  **Debt-to-Equity Ratio:** Is it below 0.5?
-  4.  **Return on Equity (ROE):** Has it been consistently above 10% for the last 3 years?
-  5.  **Price-to-Free-Cash-Flow (P/FCF):** Is it below 15?
+        const responseText = result.response.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!responseText) {
+          throw new Error("Received empty response from market data call.");
+        }
 
-**Step 3: Brief Qualitative Check.**
-- For the few companies that survived Step 2, perform a quick search to verify they are not obvious "value traps".
-- Ask: "Is this company in a structurally declining industry?" or "Is there a major, company-destroying scandal?". Discard any that fail this check.
+        const marketData = this.parseJsonFromResponse(responseText);
 
-**Step 4: Final Summary Generation.**
-- Produce a simple text summary of the FINAL list of companies that passed all filters.
-- For each company, provide its name, ticker, and a one-sentence summary explaining WHICH specific quantitative and qualitative criteria it passed.
-- Example Summary: "Johnson & Johnson (JNJ): Passed filter with a consistent ROE above 25%, a reasonable P/E ratio, and a durable competitive moat in the healthcare sector."
-
-Your final output must be only the unstructured text summary of your findings.
-    `;
-
-    const request = {
-      contents: [{ role: 'user', parts: [{ text: intelligencePrompt }] }],
-      tools: [{ google_search_retrieval: {} }],
-    };
-
-    // @ts-ignore
-    const result = await model.generateContent(request);
-    return result.response.text();
-  }
-
-  private async structureOpportunities(intelligence: string): Promise<OpportunitySearchResponse> {
-    const model = this.genAI.getGenerativeModel({
-      model: "gemini-1.5-pro",
-      generationConfig: {
-        temperature: 0.1, // Be very precise
-        responseMimeType: "application/json",
-        responseSchema: OPPORTUNITY_SEARCH_SCHEMA as any,
-      },
-    });
-
-    const structuringPrompt = `
-You are a data structuring and validation API. Your task is to analyze the following raw text, which contains potential investment opportunities. Your goal is to act as a final filter, only selecting the opportunities that hold up to scrutiny based *solely on the information within the provided text*.
-
-**Your Process:**
-1.  **Parse:** Identify each company, its ticker, and the initial investment thesis from the 'Raw Intelligence Text' below.
-2.  **Synthesize & Validate:** For each candidate, analyze the provided thesis. Does it mention strong fundamentals (low debt, high cash flow, moat)? Does it imply a non-hostile technical or sentiment picture?
-3.  **Formulate Thesis:** Re-write the 'opportunityThesis' in your own words, synthesizing the key points into a coherent, skeptical summary, consistent with the "Skeptic Mechanic" philosophy of Signal-360.
-4.  **Filter:** If the provided text for a company is weak, vague, or mentions significant risks without strong counterpoints, **you must discard it**. Only output the opportunities that have a compelling, data-supported thesis *within the text itself*.
-
-Format your final, filtered list precisely into a JSON object that conforms to the provided schema. If no candidates pass your filter, return an empty "opportunities" array.
-
-**Raw Intelligence Text:**
----
-${intelligence}
----
-    `;
-
-    const result = await model.generateContent(structuringPrompt);
-    const responseText = result.response.text();
-    return JSON.parse(responseText) as OpportunitySearchResponse;
-  }
-
-  private async getMarketData(ticker: string, retries = 3): Promise<Record<string, any>> {
-    const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const prompt = this.buildMarketDataPrompt(ticker);
-    const request = {
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      tools: [{ google_search_retrieval: {} }],
-      generationConfig: { temperature: 0.1, maxOutputTokens: 2048 }
-    };
-
-    for (let attempt = 1; attempt <= retries; attempt++) {
-      try {
-        // @ts-ignore
-        const result = await model.generateContent(request);
-        const responseText = result.response.text();
-        const marketData = this.parseMarketData(responseText);
-                
-        // Success condition: price is valid
-        if (marketData.currentPrice !== -1 && marketData.priceTimestamp !== null) {
+        if (marketData && typeof marketData.currentPrice === 'number' && marketData.currentPrice > 0) {
+          console.log(`[AnalysisService] getMarketData successful for ${ticker} on attempt ${attempt}`);
           return marketData;
         }
+                
+        throw new Error(`Invalid price received for ${ticker}: ${marketData?.currentPrice}`);
 
-        // If price is invalid, it's a "soft" failure, so we'll let it retry
-        console.warn(`[AnalysisService] getMarketData attempt ${attempt} for ${ticker} returned invalid price. Retrying...`);
-      } catch (apiError) {
-        console.error(`[AnalysisService] getMarketData attempt ${attempt} for ${ticker} failed with API error:`, apiError);
-        // For a hard API error, we only retry if it's not the last attempt
-        if (attempt === retries) {
-          throw new Error(`Failed to fetch live market data for ${ticker} after ${retries} attempts: ${apiError instanceof Error ? apiError.message : 'Unknown API error'}`);
+      } catch (error) {
+        console.warn(`[AnalysisService] getMarketData attempt ${attempt} for ${ticker} failed.`, error);
+        if (attempt === MAX_RETRIES) {
+          console.error(`[AnalysisService] CRITICAL FAILURE in getMarketData for ${ticker} after ${MAX_RETRIES} attempts.`);
+          throw new Error(`Could not retrieve a live market price for ${ticker} after ${MAX_RETRIES} attempts.`);
         }
-      }
-      // Wait a bit before the next retry
-      if (attempt < retries) {
-        await new Promise(res => setTimeout(res, 1000)); // 1-second delay
+        // Wait a bit before retrying, e.g., exponential backoff or simple delay
+        await new Promise(res => setTimeout(res, 500 * attempt));
       }
     }
-
-    // If all retries fail, throw the final error
-    throw new Error(`Could not retrieve a live market price for ${ticker} after ${retries} attempts.`);
+    // This line should theoretically be unreachable
+    throw new Error(`getMarketData failed for ${ticker} unexpectedly.`);
   }
 
-  private buildMarketDataPrompt(ticker: string): string {
-    return `
-You are a specialized, high-frequency financial data feed API. Your sole function is to execute a real-time web search to fetch the most current, live trading price and associated data for the stock ticker "${ticker}".
 
-**CRITICAL DIRECTIVES:**
-1.  **NO CACHE:** You MUST NOT use your internal knowledge base or any cached data. Your only source is a live web search executed at this exact moment.
-2.  **VERIFY SOURCE:** The data must come from a primary financial source (e.g., Google Finance, Yahoo Finance, a major exchange). Do not use prices from news articles.
-3.  **STRICT OUTPUT:** Your response MUST BE ONLY the raw JSON object. Do not include any text, apologies, or markdown formatting before or after the JSON.
-4.  **FAILURE CONDITION:** If you cannot definitively locate a live price, you MUST return a value of -1 for "currentPrice" and "null" for "priceTimestamp".
 
-The JSON object you return must conform to the following structure. The instructions within the descriptions are MANDATORY.
 
-{
-  "companyName": "The full, official company name.",
-  "currentPrice": "CRITICAL: Execute a live Google Search right now to find the most up-to-the-minute market price. The validity of the entire analysis depends on this data point. DO NOT use cached knowledge. If a live price is absolutely unavailable, return -1.",
-  "currency": "The currency of the price (e.g., 'USD').",
-  "sharesOutstanding": "The latest reported number for shares outstanding.",
-  "marketCap": "The real-time market capitalization.",
-  "sector": "The company's primary sector.",
-  "industry": "The company's primary industry.",
-  "exchange": "The primary stock exchange where the ticker is traded (e.g., 'NASDAQ').",
-  "priceTimestamp": "CRITICAL: The exact timestamp of the price quote you just retrieved. Must be in strict ISO 8601 format with timezone. If a live price is unavailable, return null."
-}`;
-  }
 
-  private parseMarketData(jsonString: string): Record<string, any> {
+  private parseJsonFromResponse(responseText: string): any {
     try {
-      const jsonMatch = jsonString.match(/```json\n([\s\S]*?)\n```|(\{[\s\S]*\})/);
-      if (!jsonMatch) throw new Error("No valid JSON object found in the AI response.");
-      return JSON.parse(jsonMatch[1] || jsonMatch[2]);
+      // Try to find JSON in markdown code blocks first
+      const jsonMatch = responseText.match(/```json\n([\s\S]*?)\n```/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[1]);
+      }
+      
+      // Try to find raw JSON object
+      const rawJsonMatch = responseText.match(/(\{[\s\S]*\})/);
+      if (rawJsonMatch) {
+        return JSON.parse(rawJsonMatch[1]);
+      }
+      
+      // If no JSON found, try parsing the entire response
+      return JSON.parse(responseText);
     } catch (error) {
-      console.error("Failed to parse market data:", error);
-      throw new Error("Could not decode the market data JSON from the AI response.");
+      console.error("Failed to parse JSON from response:", error);
+      throw new Error("Could not decode JSON from the AI response.");
     }
   }
 
-  private async performInvestmentAnalysis(ticker: string, marketData: Record<string, any>): Promise<InvestmentAnalysisResponse> {
+  private async performInvestmentAnalysis(ticker: string, marketData: MarketData): Promise<InvestmentAnalysisResponse> {
     const model = this.genAI.getGenerativeModel({
       model: "gemini-1.5-pro",
       generationConfig: {
@@ -449,7 +415,7 @@ The JSON object you return must conform to the following structure. The instruct
       }
     });
 
-    const superPrompt = this.buildInvestmentPromptV5(ticker, marketData);
+    const superPrompt = this.buildInvestmentPromptV6(ticker, marketData);
 
     const result = await model.generateContent(superPrompt);
     const responseText = result.response.text();
@@ -457,47 +423,48 @@ The JSON object you return must conform to the following structure. The instruct
     return JSON.parse(responseText) as InvestmentAnalysisResponse;
   }
 
-  private buildInvestmentPromptV5(ticker: string, marketData: Record<string, any>): string {
-    // Super-Prompt v5 - "The Signal-360 Investment Committee"
+  private buildInvestmentPromptV6(ticker: string, marketData: MarketData): string {
+    // Super-Prompt v6.1 - "The Signal-360 Value-First Committee"
     return `
-You are a committee of four elite analysts working for "Signal-360". Your task is to produce a single, unified investment analysis report for ${ticker} (${marketData.companyName}).
+You are a committee of three elite analysts and a Head of Strategy working for "Signal-360". Your task is to produce a single, unified investment analysis report for ${ticker} (${marketData.companyName}).
 
 **COMMITTEE CONSTITUTION - YOUR CORE PHILOSOPHY (MANDATORY):**
-Your guiding philosophy is that of a "Skeptic Mechanic". You are not a salesperson. Your primary function is to find reasons NOT to invest, in order to protect the user's capital. You prioritize risk over return. You question every narrative and demand quantitative proof. A great company at a high price is a bad investment.
+Your guiding philosophy is that of a "Skeptic Mechanic" with a strict "Value-First" mandate. You prioritize risk over return. You question every narrative and demand quantitative proof. A great company at a high price is a bad investment.
 
-**INPUT DATA (AS OF ${marketData.priceTimestamp || 'A RECENT TIMESTAMP'}):**
+**INPUT DATA:**
 - Company: ${marketData.companyName}
-- Current Price: ${marketData.currentPrice} ${marketData.currency}
+- Current Price: ${marketData.currentPrice}
 
 **MANDATORY ANALYSIS FRAMEWORK (EXECUTE IN ORDER AND FILL THE SCHEMA):**
 
-**Part 1: The Value Investor's Report (Populate 'fundamental')**
-As the 'Value Investor's Compass' expert, conduct a deep fundamental analysis.
+**Part 1: The Value Investor's Report (The Protagonist)**
+As the 'Value Investor's Compass' expert, conduct a deep fundamental analysis. This part is the most important.
 - **Business & Moat:** Describe the business model and the durability of its economic moat.
 - **Management:** Provide a qualitative review of the management team's effectiveness.
-- **Financial Ratios:** Calculate and explain the P/E, ROE, Debt-to-Equity, and Net Profit Margin. The explanation for each ratio is mandatory.
+- **Financial Ratios:** Calculate and explain the P/E, ROE, Debt-to-Equity, and Net Profit Margin.
 - **DCF Valuation:** Perform a DCF analysis. State the final intrinsic value per share and list your key assumptions.
 
-**Part 2: The Market Analyst's Report (Populate 'sentiment')**
-As the 'Eco Corporativo' expert, measure the market's pulse.
+**Part 2: The Market Analyst's Report (Contextual Advisor)**
+As the 'Eco Corporativo' expert, measure the market's pulse. Your findings will primarily be used to identify risks and supporting factors.
 - **Sentiment Score & Trend:** Provide an overall sentiment score (0-100) and a trend ('Improving', 'Stable', 'Worsening').
-- **Key Echoes:** Identify the top 3 news or social media "echoes". For EACH echo, you must provide the source, a summary, and an individual sentiment score (-100 to 100).
+- **Key Echoes:** Identify the top 3 news or social media "echoes" with source and summary.
 
-**Part 3: The Technical Strategist's Report (Populate 'technical')**
-As the 'QuantumLeap Speculator' expert, analyze the technicals for a LONG-TERM INVESTOR.
+**Part 3: The Technical Strategist's Report (Contextual Advisor)**
+As the 'QuantumLeap Speculator' expert, analyze the technicals for a LONG-TERM INVESTOR. Your findings will primarily be used to identify risks and supporting factors related to timing.
 - **Overall Trend:** Determine the primary trend ('Uptrend', 'Downtrend', 'Sideways').
 - **Key Levels:** Identify the most significant long-term support and resistance levels.
-- **Technical Summary:** Write a narrative explaining if the current price action represents an opportune entry point, a risky one, or if patience is warranted.
+- **Technical Summary:** Write a narrative explaining if the current price represents an opportune entry point.
 
-**Part 4: The Head of Strategy's Verdict (Populate 'verdict')**
-As the 'Strategic Synthesis' expert, your job is to synthesize the three reports above into a final, actionable verdict.
-- **Synthesize:** Analyze the convergence (where reports agree) and divergence (where they conflict).
-- **Synthesis Profile:** Write a compelling, concise title for the overall investment thesis.
-- **Strategist Verdict:** Write the final narrative. Explain the balance of risks and rewards based on the synthesis.
-- **Convergence/Divergence Factors:** List the specific points of agreement and disagreement between the reports.
-- **Synthesis Score:** Calculate a final conviction score (0-100). Start at 50. High convergence and a large margin of safety add points. Significant divergence or high valuation risk subtracts major points.
+**Part 4: The Head of Strategy's Verdict (Value-First Synthesis)**
+As the 'Strategic Synthesis' expert, your job is to synthesize the three reports above into a final, actionable verdict following a strict "Value-First" protocol.
+- **Synthesize:** Analyze where the reports agree and conflict.
+- **CRITICAL INSTRUCTION:** The 'synthesisScore' and 'strategistVerdict' MUST be primarily based on the findings of the "Value Investor's Report" (Part 1). The reports from Part 2 and 3 act as contextual advisors to enrich the thesis, not to veto it. Their role is not to change the *destination* (the value verdict), but to advise on the *road conditions* (market sentiment, entry timing).
+- **Synthesis Profile:** Write a compelling, concise title for the investment thesis.
+- **Strategist Verdict:** Write the final narrative, anchored in the value thesis, but acknowledging the contextual factors from sentiment and technicals.
+- **Convergence/Divergence Factors:** List the specific points of agreement and disagreement.
+- **Synthesis Score:** Calculate a final conviction score (0-100). This score's calculation must follow this rule: **the conclusions from the Value Investor's Report (business quality, management, margin of safety) must determine at least 75% of the final score.** A strong fundamental case with a high margin of safety MUST result in a high score, even if sentiment is temporarily negative or the technical trend is neutral.
 
-Now, execute this entire, multi-expert process. Your final output must be ONLY the single JSON object that strictly conforms to the provided response schema. Do not add any text before or after the JSON.
+Your final output must be ONLY the single JSON object that strictly conforms to the provided response schema.
 `;
   }
 
