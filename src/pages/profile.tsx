@@ -92,7 +92,7 @@ export function ProfilePage() {
             marginBottom: '10px',
             fontSize: '2rem'
           }}>
-            Welcome to Signal-360
+            Welcome to Value Investor's Compass
           </h1>
           <p style={{ 
             color: '#666', 
@@ -231,7 +231,7 @@ export function ProfilePage() {
               marginBottom: '15px',
               lineHeight: '1.5'
             }}>
-              Welcome to Signal-360! Your account is now set up and ready to use. 
+              Welcome to Value Investor's Compass! Your account is now set up and ready to use. 
               You can now access all the investment analysis features.
             </p>
             <button

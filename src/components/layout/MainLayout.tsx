@@ -2,6 +2,8 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/auth-context';
 import { useUserProfile } from '../../hooks/useUserProfile';
+import { useDisclaimer } from '../../hooks/useDisclaimer';
+import { DisclaimerModal } from '../modals/DisclaimerModal';
 
 // Icon Components
 function LogoutIcon() {
@@ -39,6 +41,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { profile } = useUserProfile();
+  const { showDisclaimer, acceptDisclaimer } = useDisclaimer();
 
   const isDashboard = location.pathname === '/';
 
@@ -55,7 +58,9 @@ export function MainLayout({ children }: MainLayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-black flex flex-col relative overflow-hidden">
+    <>
+      <DisclaimerModal isOpen={showDisclaimer} onAccept={acceptDisclaimer} />
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-black flex flex-col relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-cyan-400/20 to-purple-600/20 rounded-full blur-3xl animate-pulse" />
@@ -68,29 +73,30 @@ export function MainLayout({ children }: MainLayoutProps) {
         <header className="backdrop-blur-xl bg-slate-900/50 border-b border-white/10 py-6 mb-8 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center space-x-4 mb-4 sm:mb-0">
-              {/* Signal-360 Logo */}
+              {/* Value Investor's Compass Logo */}
               <div className="relative">
                 <img 
-                  src="/logos/signal-360-logo.png" 
-                  alt="Signal-360 Logo" 
-                  className="w-14 h-14 lg:w-16 lg:h-16"
+                  src="/logos/LogoCompass.webp" 
+                  alt="Value Investor's Compass Logo" 
+                  className="w-12 h-12 lg:w-12 lg:h-12"
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
                     (e.currentTarget.nextElementSibling as HTMLElement)!.style.display = 'flex';
                   }}
                 />
-                <div className="w-14 h-14 lg:w-16 lg:h-16 bg-gradient-to-br from-cyan-400 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl hidden">
-                  <span className="text-white font-bold text-lg lg:text-xl">S</span>
+                <div className="w-12 h-12 lg:w-12 lg:h-12 bg-gradient-to-br from-cyan-400 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl hidden">
+                  <span className="text-white font-bold text-lg lg:text-xl">V</span>
                 </div>
               </div>
               <div>
+                <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent font-bold text-lg lg:text-xl">Value Investor's Compass</span>
                 {/* Mobile slogan */}
-                <p className="block md:hidden text-lg font-medium text-gray-300">
-                  Invest with Clarity.
+                <p className="block md:hidden text-sm font-medium text-gray-300">
+                  Value-First Analysis
                 </p>
                 {/* Desktop slogan */}
-                <p className="hidden md:block text-lg lg:text-xl font-medium text-gray-300">
-                  Clarity in Complexity. Confidence in Conviction.
+                <p className="hidden md:block text-sm lg:text-base font-medium text-gray-300">
+                  Disciplined Value Investing Through AI
                 </p>
               </div>
             </div>
@@ -164,35 +170,44 @@ export function MainLayout({ children }: MainLayoutProps) {
       {/* Footer */}
       <footer className="relative z-10 backdrop-blur-xl bg-black/40 border-t border-white/10 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-center space-x-4">
-            <span className="text-gray-400 text-sm lg:text-base">Created by</span>
-            <a 
-              href="https://es.vortexlabsia.com" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="flex items-center space-x-3 hover:opacity-80 transition-all duration-300 hover:scale-105 group"
-            >
-              <div className="relative">
-                <img 
-                  src="/logos/vortex-logo.png" 
-                  alt="Vortex Logo" 
-                  className="w-10 h-10"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                    (e.currentTarget.nextElementSibling as HTMLElement)!.style.display = 'flex';
-                  }}
-                />
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg hidden">
-                  <span className="text-white font-bold text-sm">V</span>
+          <div className="flex items-center justify-center space-x-6">
+            <div className="flex items-center space-x-2 text-gray-400">
+              <span className="text-sm">by</span>
+              <a 
+                href="https://es.vortexlabsia.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center space-x-2 hover:opacity-80 transition-all duration-300 hover:scale-105 group"
+              >
+                <div className="relative">
+                  <img 
+                    src="/logos/vortex-logo.png" 
+                    alt="Vortex Logo" 
+                    style={{ height: "20px" }}
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      (e.currentTarget.nextElementSibling as HTMLElement)!.style.display = 'flex';
+                    }}
+                  />
+                  <div className="h-5 w-5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg hidden">
+                    <span className="text-white font-bold text-xs">V</span>
+                  </div>
                 </div>
-              </div>
-              <span className="text-gray-200 font-semibold text-sm lg:text-base group-hover:text-white transition-colors duration-300">
-                Vortex Labs
-              </span>
+              </a>
+            </div>
+            <a 
+              href="mailto:soporte@vortexlabsia.com?subject=Feedback%20and%20Credits" 
+              className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <span className="text-sm">Feedback & Credits</span>
             </a>
           </div>
         </div>
       </footer>
-    </div>
+      </div>
+    </>
   );
 }

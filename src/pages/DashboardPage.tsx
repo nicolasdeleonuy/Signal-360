@@ -93,7 +93,7 @@ function PremiumFeatureCard({ onPremiumClick, userCredits }: PremiumFeatureCardP
           </div>
         </div>
         <p className="text-gray-200 leading-relaxed text-lg">
-          Our AI will scan thousands of stocks to find opportunities that match value investing principles.
+          Our tireless AI scout will scan thousands of stocks to find undervalued opportunities that match strict value investing principles.
         </p>
       </div>
       
@@ -176,10 +176,30 @@ export function DashboardPage() {
     }
   }, [profile, decrementCredits, runSearch]);
 
-  const handleOpportunityClick = useCallback((ticker: string) => {
-    setShowOpportunities(false);
-    navigate(`/analysis/${ticker}`);
-  }, [navigate]);
+  const handleOpportunityClick = useCallback(async (ticker: string) => {
+    // Check if user has credits
+    if (!profile || profile.credits <= 0) {
+      alert('You need credits to perform a deep analysis.');
+      return;
+    }
+
+    try {
+      // Decrement credits first and wait for completion
+      const success = await decrementCredits();
+      if (success) {
+        setShowOpportunities(false);
+        // Add a small delay to ensure state has propagated
+        setTimeout(() => {
+          navigate(`/analysis/${ticker}`);
+        }, 100);
+      } else {
+        alert('Failed to process request. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error in handleOpportunityClick:', error);
+      alert('Failed to process request. Please try again.');
+    }
+  }, [navigate, profile, decrementCredits]);
 
   const handleCloseOpportunities = useCallback(() => {
     setShowOpportunities(false);
@@ -190,10 +210,10 @@ export function DashboardPage() {
   return (
     <>
           <div className="grid grid-cols-1 lg:grid-cols-2 lg:grid-rows-1 gap-6 lg:gap-8 mb-16 lg:mb-20 flex-1 min-h-[500px] lg:min-h-[600px]">
-            {/* Path 1: Investigate Like a Pro */}
+            {/* Path 1: Go From Ticker to Thesis in Seconds */}
             <DashboardCard
-              title="Investigate Like a Pro"
-              description="Perform a 360-degree analysis on any stock or asset you have in mind"
+              title="Go From Ticker to Thesis in Seconds"
+              description="Skip hours of research. Get a clear, actionable investment verdict backed by comprehensive analysis in moments."
               isPrimary={true}
             >
               <div className="space-y-6 h-full flex flex-col">
@@ -232,10 +252,10 @@ export function DashboardPage() {
               </div>
             </DashboardCard>
 
-            {/* Path 2: Find Your Next Great Investment */}
+            {/* Path 2: Uncover Potential Bargains */}
             <DashboardCard
-              title="Find Your Next Great Investment"
-              description="Use our AI to scan the market and discover promising companies based on value investing principles"
+              title="Uncover Potential Bargains"
+              description="Let our tireless AI scout save you hours of manual screening by finding undervalued companies that match strict value criteria."
             >
               <PremiumFeatureCard 
                 onPremiumClick={handlePremiumFeatureClick} 
@@ -244,10 +264,10 @@ export function DashboardPage() {
             </DashboardCard>
           </div>
 
-          {/* Why Choose Signal-360 Section */}
+          {/* Why Choose Value Investor's Compass Section */}
           <div className="text-center">
             <h2 className="text-3xl lg:text-4xl font-bold text-white mb-12 bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
-              Why Choose Signal-360?
+              Why Choose Value Investor's Compass?
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
               {/* Deep Analysis Card */}
@@ -258,10 +278,10 @@ export function DashboardPage() {
                   </div>
                 </div>
                 <h3 className="text-xl lg:text-2xl font-bold text-white mb-4 group-hover:text-cyan-100 transition-colors duration-300">
-                  Deep Analysis, in Seconds
+                  Go Deeper, Faster
                 </h3>
                 <p className="text-gray-300 leading-relaxed text-base lg:text-lg">
-                  Save hours of research. We distill financial data into clear, actionable insights for you.
+                  Get comprehensive analysis in seconds, not hours. We combine speed with depth to accelerate your investment decisions.
                 </p>
               </div>
 
@@ -273,10 +293,10 @@ export function DashboardPage() {
                   </div>
                 </div>
                 <h3 className="text-xl lg:text-2xl font-bold text-white mb-4 group-hover:text-purple-100 transition-colors duration-300">
-                  360° Vision
+                  A Disciplined Philosophy
                 </h3>
                 <p className="text-gray-300 leading-relaxed text-base lg:text-lg">
-                  We merge fundamental, technical, and sentiment analysis for a complete picture of any asset.
+                  Our value-first approach prioritizes business fundamentals over market noise, keeping you focused on what truly matters.
                 </p>
               </div>
 
@@ -288,10 +308,10 @@ export function DashboardPage() {
                   </div>
                 </div>
                 <h3 className="text-xl lg:text-2xl font-bold text-white mb-4 group-hover:text-cyan-100 transition-colors duration-300">
-                  Invest with Confidence
+                  Invest with Conviction
                 </h3>
                 <p className="text-gray-300 leading-relaxed text-base lg:text-lg">
-                  Make smarter decisions with an AI analyst by your side.
+                  Clear analysis leads to confident decisions. Know exactly why you're investing, not just what to buy.
                 </p>
               </div>
             </div>

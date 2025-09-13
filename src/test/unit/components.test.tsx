@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { AuthProvider } from '../../contexts/auth-context';
@@ -32,7 +32,7 @@ describe('Component Unit Tests', () => {
       // Check for main dashboard sections
       expect(screen.getByText(/investigate like a pro/i)).toBeInTheDocument();
       expect(screen.getByText(/find your next great investment/i)).toBeInTheDocument();
-      expect(screen.getByText(/why choose signal-360/i)).toBeInTheDocument();
+      expect(screen.getByText(/why choose value investor's compass/i)).toBeInTheDocument();
       
       // Check for key features
       expect(screen.getByText(/deep analysis, in seconds/i)).toBeInTheDocument();
@@ -168,7 +168,7 @@ describe('Component Unit Tests', () => {
       render(
         <OpportunitiesView 
           {...mockProps} 
-          data={{ opportunities: [] }} 
+          data={{ ideas: [] }} 
         />
       );
 

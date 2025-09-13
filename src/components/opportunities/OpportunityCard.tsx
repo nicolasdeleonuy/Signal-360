@@ -61,15 +61,20 @@ export function OpportunityCard({ opportunity, onClick }: OpportunityCardProps) 
           Investment Thesis
         </h4>
         <p className="text-gray-200 leading-relaxed text-sm">
-          {opportunity.opportunityThesis}
+          {opportunity.reason}
         </p>
       </div>
 
-      {/* Call to action hint */}
+      {/* Call to action hint with credit cost */}
       <div className="mt-4 pt-4 border-t border-white/10">
-        <p className="text-xs text-gray-400 group-hover:text-cyan-300 transition-colors duration-300">
-          Click to analyze {opportunity.ticker} in detail →
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-gray-400 group-hover:text-cyan-300 transition-colors duration-300">
+            Click to analyze {opportunity.ticker} in detail →
+          </p>
+          <div className="flex items-center space-x-1 text-xs text-cyan-400 font-medium">
+            <span>1 Credit</span>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -88,21 +88,21 @@ export const mockAnalysisResponse: InvestmentAnalysisResponse = {
 };
 
 export const mockOpportunityResponse: OpportunitySearchResponse = {
-  opportunities: [
+  ideas: [
     {
       ticker: 'MSFT',
       companyName: 'Microsoft Corporation',
-      opportunityThesis: 'Strong cloud growth and AI positioning with reasonable valuation. Consistent dividend growth and market-leading margins in enterprise software.'
+      reason: 'Strong cloud growth and AI positioning with reasonable valuation. Consistent dividend growth and market-leading margins in enterprise software.'
     },
     {
       ticker: 'GOOGL',
       companyName: 'Alphabet Inc.',
-      opportunityThesis: 'Dominant search position with growing cloud business. Trading at attractive valuation despite regulatory headwinds.'
+      reason: 'Dominant search position with growing cloud business. Trading at attractive valuation despite regulatory headwinds.'
     },
     {
       ticker: 'JNJ',
       companyName: 'Johnson & Johnson',
-      opportunityThesis: 'Defensive healthcare play with strong pharmaceutical pipeline. Reliable dividend aristocrat with recession-resistant business model.'
+      reason: 'Defensive healthcare play with strong pharmaceutical pipeline. Reliable dividend aristocrat with recession-resistant business model.'
     }
   ]
 };

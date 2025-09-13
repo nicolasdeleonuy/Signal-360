@@ -45,7 +45,7 @@ export function Navigation({ className = '' }: NavigationProps) {
                 textDecoration: 'none'
               }}
             >
-              Signal-360
+              Value Investor's Compass
             </Link>
           </div>
           

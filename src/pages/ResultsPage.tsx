@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useSignalAnalysis } from '../hooks/useSignalAnalysis';
 import InteractiveDCF from '../components/analysis/InteractiveDCF';
 
-type TabType = 'Verdict' | 'Value Analysis' | 'Market Sentiment' | 'Technical Timing';
+type TabType = 'Verdict' | 'Value Analysis' | 'Market Sentiment' | 'Technical Timing' | 'Financials' | 'Watchlist' | 'Risk Analysis' | 'Advanced Screener';
 
 // Helper function to get score color based on value
 const getScoreColor = (score: number) => {
@@ -47,7 +47,7 @@ const ResultsPage: React.FC = () => {
           </h2>
           
           <p className="text-gray-300 text-lg lg:text-xl leading-relaxed mb-8">
-            Our AI is performing a comprehensive 360° analysis of your selected asset. 
+            Our AI is performing a comprehensive Value-First analysis of your selected asset. 
             This includes fundamental metrics, technical indicators, ESG factors, and market sentiment.
           </p>
           
@@ -163,6 +163,13 @@ const ResultsPage: React.FC = () => {
                 <h4 className="text-lg font-semibold text-white mb-3">Executive Summary</h4>
                 <p className="text-gray-300 leading-relaxed">
                   {verdict.strategistVerdict}
+                </p>
+              </div>
+
+              {/* Contextual Disclaimer */}
+              <div className="mt-6 text-center">
+                <p className="text-gray-400 text-sm italic">
+                  *This is an AI-driven synthesis, not financial advice. Your investment decisions are your own.
                 </p>
               </div>
             </div>
@@ -440,7 +447,7 @@ const ResultsPage: React.FC = () => {
               Analysis Results
             </h1>
             <p className="text-gray-300 text-lg lg:text-xl mb-8">
-              Comprehensive 360° analysis for {ticker?.toUpperCase()}
+              Comprehensive analysis for {ticker?.toUpperCase()}
             </p>
           </div>
 
@@ -496,11 +503,13 @@ const ResultsPage: React.FC = () => {
                   };
 
                   const subtitle = getTabSubtitle(tab);
+                  const disabled = false;
 
                   return (
                     <button
                       key={tab}
-                      onClick={() => setActiveTab(tab)}
+                      onClick={() => !disabled && setActiveTab(tab)}
+                      disabled={disabled}
                       className={`
                         flex-1 min-w-0 px-6 py-4 rounded-xl font-semibold text-sm lg:text-base transition-all duration-300 
                         focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:ring-offset-gray-900
@@ -526,6 +535,48 @@ const ResultsPage: React.FC = () => {
         {/* Tab Content */}
         <div>
           {renderTabContent()}
+        </div>
+
+        {/* What's Next Section */}
+        <div className="mt-16">
+          <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl p-8 shadow-2xl">
+            <h3 className="text-2xl lg:text-3xl font-bold text-white mb-6 bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+              What's Next for Your Compass?
+            </h3>
+            <p className="text-gray-300 text-lg mb-8">
+              We're constantly expanding our analysis capabilities. Here's what's coming soon:
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-2xl p-6">
+                <h4 className="text-lg font-semibold text-cyan-300 mb-3">Watchlist</h4>
+                <p className="text-gray-400 text-sm">
+                  Track multiple investments and get alerts on significant changes.
+                </p>
+              </div>
+              
+              <div className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-2xl p-6">
+                <h4 className="text-lg font-semibold text-purple-300 mb-3">Financials</h4>
+                <p className="text-gray-400 text-sm">
+                  Interactive financial statements and ratio analysis over time.
+                </p>
+              </div>
+              
+              <div className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-2xl p-6">
+                <h4 className="text-lg font-semibold text-green-300 mb-3">Risk Analysis</h4>
+                <p className="text-gray-400 text-sm">
+                  Comprehensive risk assessment and scenario modeling.
+                </p>
+              </div>
+              
+              <div className="backdrop-blur-sm bg-white/5 border border-white/10 rounded-2xl p-6">
+                <h4 className="text-lg font-semibold text-orange-300 mb-3">Advanced Screener</h4>
+                <p className="text-gray-400 text-sm">
+                  Custom filters to find investments matching your exact criteria.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

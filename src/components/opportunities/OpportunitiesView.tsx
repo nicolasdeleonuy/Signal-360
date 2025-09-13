@@ -117,16 +117,16 @@ export function OpportunitiesView({ onOpportunityClick, onClose, data, error, is
               </div>
             )}
 
-            {data && data.opportunities && data.opportunities.length > 0 && (
+            {data && data.ideas && data.ideas.length > 0 && (
               <div className="space-y-6">
                 <div className="text-center mb-8">
                   <p className="text-gray-300 text-lg">
-                    Found <span className="text-cyan-300 font-semibold">{data.opportunities.length}</span> promising opportunities
+                    Found <span className="text-cyan-300 font-semibold">{data.ideas.length}</span> promising opportunities
                   </p>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {data.opportunities.map((opportunity, index) => (
+                  {data.ideas.map((opportunity, index) => (
                     <OpportunityCard
                       key={`${opportunity.ticker}-${index}`}
                       opportunity={opportunity}
@@ -137,33 +137,32 @@ export function OpportunitiesView({ onOpportunityClick, onClose, data, error, is
 
                 <div className="mt-8 p-4 backdrop-blur-sm bg-cyan-500/10 border border-cyan-400/20 rounded-xl">
                   <p className="text-cyan-200 text-sm text-center">
-                    💡 <strong>Tip:</strong> Click on any opportunity to get a detailed 360° analysis
+                    💡 <strong>Tip:</strong> Click on any opportunity to get a detailed comprehensive analysis
                   </p>
                 </div>
               </div>
             )}
 
-            {data && data.opportunities && data.opportunities.length === 0 && (
+            {data && data.ideas && data.ideas.length === 0 && (
               <div className="flex flex-col items-center justify-center py-16 space-y-6">
-                <div className="text-gray-400">
-                  <SearchIcon />
+                <div className="w-16 h-16 bg-gradient-to-br from-yellow-400/20 to-orange-400/20 border border-yellow-400/30 rounded-2xl flex items-center justify-center">
+                  <div className="text-yellow-400">
+                    <SearchIcon />
+                  </div>
                 </div>
-                <div className="text-center space-y-2">
-                  <h3 className="text-xl font-semibold text-gray-300">
-                    No Clear Opportunities Found
+                <div className="text-center space-y-4 max-w-md">
+                  <h3 className="text-2xl font-bold text-white">
+                    No Opportunities Found
                   </h3>
-                  <p className="text-gray-400 max-w-md">
-                    Our AI couldn't find any stocks meeting the strict value criteria at this time. Market conditions may be challenging.
+                  <p className="text-gray-300 leading-relaxed">
+                    Our rigorous filter found no companies matching our strict criteria at this time. This is the hallmark of a disciplined investment process.
                   </p>
+                  <div className="backdrop-blur-sm bg-yellow-500/10 border border-yellow-400/20 rounded-xl p-4">
+                    <p className="text-yellow-200 text-sm">
+                      💡 <strong>Remember:</strong> Quality over quantity. We'd rather find nothing than recommend mediocre investments.
+                    </p>
+                  </div>
                 </div>
-                <button
-                  onClick={onClose}
-                  className="bg-gradient-to-r from-gray-600 to-gray-500 hover:from-gray-500 hover:to-gray-400 
-                           text-white font-medium py-3 px-6 rounded-xl transition-all duration-300 
-                           focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-gray-900"
-                >
-                  Close
-                </button>
               </div>
             )}
           </div>

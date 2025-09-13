@@ -17,7 +17,7 @@ const TestWrapper = ({ children, initialEntries = ['/'] }: { children: React.Rea
 );
 
 describe('Test Shield - Core Application Functionality', () => {
-  let mockNavigate: ReturnType<typeof vi.fn>;
+
   let authStateCallback: ((event: string, session: any) => void) | undefined;
 
   beforeEach(() => {
