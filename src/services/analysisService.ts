@@ -260,7 +260,7 @@ export class AnalysisService implements IAnalysisService {
 
       const result = await model.generateContent({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
-        tools: [{ google_search_retrieval: {} }],
+        tools: [{ googleSearchRetrieval: {} }],
       });
 
       const response = result.response;
@@ -348,7 +348,7 @@ You are a financial data API. Your only task is to fetch real-time market data f
         const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         const result = await model.generateContent({
           contents: [{ role: "user", parts: [{ text: prompt }] }],
-          tools: [{ google_search_retrieval: {} }],
+          tools: [{ googleSearchRetrieval: {} }],
         });
 
         const responseText = result.response.candidates?.[0]?.content?.parts?.[0]?.text;
