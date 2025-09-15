@@ -31,7 +31,7 @@ export function SignUpPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (user && !loading) {
-      navigate('/profile')
+      navigate('/')
     }
   }, [user, loading, navigate])
 

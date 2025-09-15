@@ -90,7 +90,7 @@ export function LoginPage() {
   const location = useLocation()
 
   // Get the intended destination from location state
-  const from = (location.state as LocationState)?.from?.pathname || '/profile'
+  const from = (location.state as LocationState)?.from?.pathname || '/'
 
   // Redirect if already authenticated
   useEffect(() => {
